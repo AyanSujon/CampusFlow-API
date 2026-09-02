@@ -1,4 +1,5 @@
 # CampusFlow-API
+ERD: https://drawsql.app/teams/ayansujon/diagrams/campusflow-university-management-system-erd
 
 
 # University Management System — Prisma Database Architecture
