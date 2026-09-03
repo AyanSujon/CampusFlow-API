@@ -6,7 +6,7 @@ so you can open one `.prisma` file and its matching README section side by
 side.
 
 ```
-prisma/schema/
+prisma/models/
 ├── 00-config.prisma            → generator + datasource
 ├── enums.prisma                → every enum, shared across units
 ├── 01-auth-users.prisma        → Unit 1: Users
