@@ -34,14 +34,14 @@ router.post("/register",
 	// 	}
 	// },
 
-	validateRequest(UserValidation.PatientRegistrationZodSchema),
-	 AuthController.registerPatient);
+	validateRequest(UserValidation.StudentRegistrationZodSchema),
+	 AuthController.registerStudent);
 router.post("/login",
 	validateRequest(UserValidation.LoginZodSchema),
 	 AuthController.loginUser);
 router.get(
 	"/me",
-	auth(Role.ADMIN, Role.DOCTOR, Role.PATIENT, Role.SUPER_ADMIN),
+	auth(Role.SUPER_ADMIN, Role.ADMIN, Role.DEPARTMENT_HEAD, Role.INSTRUCTOR, Role.STUDENT, Role.ACCOUNTANT ),
 	// validateRequest
 	AuthController.getMe,
 );

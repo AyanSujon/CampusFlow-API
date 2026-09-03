@@ -17,7 +17,7 @@ const StudentRegistrationZodSchema = z.object({
 		.regex(/[^A-Za-z0-9]/, "Password must contain atleast 1 Special Character"),
 	studentProfile: z
 		.object({
-			programId: z.string().uuid("Invalid program ID."),
+			programId: z.string().uuid("Invalid program ID.").optional(),
 			dateOfBirth: z.string().optional(),
 			gender: z.enum(Gender).optional(),
 			phone: z.string().optional(),

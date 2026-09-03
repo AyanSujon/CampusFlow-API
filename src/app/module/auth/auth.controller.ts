@@ -7,23 +7,13 @@ import { AuthService } from "./auth.service";
 
 
 
-const registerPatient = catchAsync(async (req: Request, res: Response) => {
-	// const payload = PatientValidation.PatientRegistrationZodSchema.safeParse(req.body);
-
-	// if(!payload.success){
-	// 	console.log(payload.error);
-	// 	console.log(payload.error.issues);
-		
-	// 	throw new Error(payload.error.issues[0].message)
-	// }
-
-	// console.log(payload);
+const registerStudent = catchAsync(async (req: Request, res: Response) => {
 
 	const payload = req.body;
 	
-	const result = await AuthService.registerPatient(payload);
+	const result = await AuthService.registerStudent(payload);
 
-	const { accessToken, refreshToken, user, patient } = result;
+	const { accessToken, refreshToken, user, studentProfile } = result;
 
 	res.cookie("accessToken", accessToken, {
 		httpOnly: true,
@@ -41,12 +31,12 @@ const registerPatient = catchAsync(async (req: Request, res: Response) => {
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
 		success: true,
-		message: "Patient registered successfully",
+		message: "Student registered successfully",
 		data: {
 			accessToken,
 			refreshToken,
 			user,
-			patient,
+			studentProfile,
 		},
 	});
 });
@@ -186,7 +176,7 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const AuthController = {
-	registerPatient,
+	registerStudent,
 	loginUser,
 	getMe,
 	refreshToken,

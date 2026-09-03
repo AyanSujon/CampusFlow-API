@@ -11,8 +11,8 @@ export interface IRegisterStudentPayload {
   email: string;
   password: string;
 
-  studentProfile: {
-    programId: string;
+  studentProfile?: {
+    programId?: string;
     dateOfBirth?: string;
     gender?: Gender;
     phone?: string;

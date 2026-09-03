@@ -23,10 +23,17 @@ import type {
 	IRequestUser,
 	IResetPasswordPayload,
 } from "./auth.interface";
+import { generateStudentId } from "../../utils/idGenerator";
+import { Prisma } from "../../../generated/prisma/browser";
+
 
 // const registerStudent = async (payload: IRegisterStudentPayload) => {
-// 	const { name, password, studentProfile } = payload;
-	
+// 	const {
+// 		name,
+// 		password,
+// 		studentProfile: studentProfileData,
+// 	} = payload;
+
 // 	const email = payload.email.trim().toLowerCase();
 
 // 	const isUserExists = await prisma.user.findUnique({
@@ -39,23 +46,47 @@ import type {
 
 // 	const hashedPassword = await bcrypt.hash(password, 8);
 
+// 	const {...profileData } = studentProfileData;
+
+
+// /* ============================================================
+//    STUDENT ID Generate Logic 
+//    Format: STU-YYYY-DEPT-XXXX
+
+//    Example:
+//    STU-2026-CSE-0001
+//    STU-2026-CSE-0002
+//    STU-2026-EEE-0001
+// ============================================================ */
+// 	const studentId = generateStudentId("CSE", 1, 2026,); // add this form database later
+
+
 // 	const createdUser = await prisma.user.create({
 // 		data: {
 // 			name,
 // 			email,
 // 			password: hashedPassword,
 // 			role: Role.STUDENT,
+
 // 			studentProfile: {
 // 				create: {
-// 					...studentProfile,
+// 					...profileData,
+// 					studentId,
 // 				},
-// 			}
+// 			},
 // 		},
-// 		omit: { password: true },
-// 		include: { studentProfile: true },
+
+// 		omit: {
+// 			password: true,
+// 		},
+
+// 		include: {
+// 			studentProfile: true,
+// 		},
 // 	});
 
 // 	const { studentProfile, ...user } = createdUser;
+
 // 	const jwtPayload = {
 // 		userId: user.id,
 // 		name: user.name,
@@ -84,15 +115,16 @@ import type {
 // };
 
 
+
 const registerStudent = async (payload: IRegisterStudentPayload) => {
 	const {
 		name,
 		password,
+		email,
 		studentProfile: studentProfileData,
 	} = payload;
 
-	const email = payload.email.trim().toLowerCase();
-
+	// Check existing user
 	const isUserExists = await prisma.user.findUnique({
 		where: { email },
 	});
@@ -101,22 +133,45 @@ const registerStudent = async (payload: IRegisterStudentPayload) => {
 		throw new Error("User with this email already exists");
 	}
 
+	// Hash password
 	const hashedPassword = await bcrypt.hash(password, 8);
 
-	const createdUser = await prisma.user.create({
-		data: {
-			name,
-			email,
-			password: hashedPassword,
-			role: Role.STUDENT,
+	/* ============================================================
+	   STUDENT ID Generate Logic
+	   
+	   Format: STU-YYYY-DEPT-XXXX
 
+	   Example:
+	   STU-2026-CSE-0001
+	   STU-2026-CSE-0002
+	   STU-2026-EEE-0001
+	============================================================ */
+
+	// Generate only when student profile is provided
+	const studentId = studentProfileData
+		? generateStudentId("CSE", 1, 2026)
+		: undefined;
+
+	// Prepare user data
+	const userData: Prisma.UserCreateInput = {
+		name,
+		email,
+		password: hashedPassword,
+		role: Role.STUDENT,
+
+		// Student profile is completely optional
+		...(studentProfileData && {
 			studentProfile: {
 				create: {
-					studentId: crypto.randomUUID(),
 					...studentProfileData,
+					studentId: studentId!,
 				},
 			},
-		},
+		}),
+	};
+
+	const createdUser = await prisma.user.create({
+		data: userData,
 
 		omit: {
 			password: true,
@@ -129,6 +184,7 @@ const registerStudent = async (payload: IRegisterStudentPayload) => {
 
 	const { studentProfile, ...user } = createdUser;
 
+	// JWT Payload
 	const jwtPayload = {
 		userId: user.id,
 		name: user.name,
@@ -136,12 +192,14 @@ const registerStudent = async (payload: IRegisterStudentPayload) => {
 		role: user.role,
 	};
 
+	// Access Token
 	const accessToken = jwtUtils.createToken(
 		jwtPayload,
 		config.jwt_access_secret,
 		config.jwt_access_expires_in as SignOptions,
 	);
 
+	// Refresh Token
 	const refreshToken = jwtUtils.createToken(
 		jwtPayload,
 		config.jwt_refresh_secret,
@@ -155,6 +213,9 @@ const registerStudent = async (payload: IRegisterStudentPayload) => {
 		refreshToken,
 	};
 };
+
+
+
 
 
 const loginUser = async (payload: ILoginUserPayload) => {
