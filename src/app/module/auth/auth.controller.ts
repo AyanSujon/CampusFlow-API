@@ -6,7 +6,7 @@ import type { IRequestUser } from "./auth.interface";
 import { AuthService } from "./auth.service";
 
 
-
+// User Registration
 const registerStudent = catchAsync(async (req: Request, res: Response) => {
 
 	const payload = req.body;
@@ -40,7 +40,7 @@ const registerStudent = catchAsync(async (req: Request, res: Response) => {
 		},
 	});
 });
-
+// user Login 
 const loginUser = catchAsync(async (req: Request, res: Response) => {
 	const payload = req.body;
 	const result = await AuthService.loginUser(payload);
