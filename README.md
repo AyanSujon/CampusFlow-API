@@ -384,7 +384,7 @@ CampusFlow-API/
 │       ├── 08-communication.prisma
 │       └── 09-system.prisma
 ├── docs/
-│   ├── DATABASE_SCHEMA_README.md
+│   ├── DATABASE_SCHEMA_REFERENCE.md
 │   ├── API_INSTRUCTION.md
 │   ├── API_INSTRUCTION_PROMPT.md
 │   ├── MODULAR_ARCHITECTURE_GUIDE.md
@@ -427,7 +427,7 @@ This is currently a solo project, but contributions are welcome:
 ## Author / Contact
 
 **Ayan Sujon**
-Portfolio: [ayansujon.netlify.app](https://ayansujon.netlify.app)
+Portfolio: [https://ayansujon.vercel.app](https://ayansujon.vercel.app)
 GitHub: [github.com/AyanSujon](https://github.com/AyanSujon)
 
 ## Conclusion
@@ -439,6 +439,6 @@ approval workflows instead of direct writes, and a modular structure that
 keeps 32 tables and 6 roles navigable instead of tangled. For the full
 depth behind any of the summaries above, see the linked documents:
 
-- [`docs/DATABASE_SCHEMA_README.md`](docs/DATABASE_SCHEMA_README.md) — every table, field, and relationship
+- [`docs/DATABASE_SCHEMA_REFERENCE.md`](docs/DATABASE_SCHEMA_REFERENCE.md) — every table, field, and relationship
 - [`docs/API_INSTRUCTION.md`](docs/API_INSTRUCTION.md) — the full API contract, per role
 - [`docs/MODULAR_ARCHITECTURE_GUIDE.md`](docs/MODULAR_ARCHITECTURE_GUIDE.md) — how the codebase is organized and why
