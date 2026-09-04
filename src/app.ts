@@ -11,7 +11,7 @@ import httpStatus from "http-status";
 import config from "./app/config";
 import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 import { notFound } from "./app/middleware/notFound";
-import { AuthRoutes } from "./app/module/auth/auth.route";
+import { AuthRoutes } from "./app/modules/auth/auth.route";
 import { redisClient } from "./app/lib/redis";
 
 const app: Application = express();
