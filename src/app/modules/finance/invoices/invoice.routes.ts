@@ -13,7 +13,7 @@ const router = Router();
 
 
 router.post("/invoices",
-    // validateRequest(InvoiceValidation.createInvoiceZodSchema),
+    validateRequest(InvoiceValidation.createInvoiceZodSchema),
     InvoiceController.createInvoice
      );
 

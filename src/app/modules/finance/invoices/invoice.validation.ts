@@ -1,75 +1,35 @@
 import { z } from "zod";
 
-const moneySchema = z
-	.string({
-		error: "Amount is required",
-	})
-	.regex(
-		/^\d+(\.\d{1,2})?$/,
-		"Amount must be a valid monetary value with maximum 2 decimal places",
-	)
-	.refine(
-		(value) => Number(value) > 0,
-		"Amount must be greater than 0",
-	);
 
 const createInvoiceZodSchema = z.object({
-	body: z.object({
-		studentId: z
-			.string({
-				error: "Student ID is required",
-			})
-			.uuid("Invalid student ID"),
+	studentId: z
+		.string()
+		.uuid("Student ID must be a valid UUID"),
 
-		description: z
-			.string()
-			.trim()
-			.max(
-				500,
-				"Description cannot exceed 500 characters",
-			)
-			.optional(),
+	description: z
+		.string()
+		.min(1, "Description is required")
+		.max(255, "Description must not exceed 255 characters"),
 
-		amount: moneySchema,
-
-		dueDate: z
-			.string({
-				error: "Due date is required",
-			})
-			.datetime({
-				message: "Due date must be a valid ISO datetime",
-			}),
-	}),
-});
-
-const updateInvoiceZodSchema = z.object({
-	body: z
-		.object({
-			description: z
-				.string()
-				.trim()
-				.max(
-					500,
-					"Description cannot exceed 500 characters",
-				)
-				.optional(),
-
-			amount: moneySchema.optional(),
-
-			dueDate: z
-				.string()
-				.datetime({
-					message: "Due date must be a valid ISO datetime",
-				})
-				.optional(),
-		})
+	amount: z
+		.string()
+		.regex(
+			/^\d+(\.\d{1,2})?$/,
+			"Amount must be a valid monetary value with up to 2 decimal places",
+		)
 		.refine(
-			(data) => Object.keys(data).length > 0,
-			"At least one field is required",
+			(value) => Number(value) > 0,
+			"Amount must be greater than 0",
 		),
+
+	dueDate: z
+		.string()
+		.datetime({
+			message: "Due date must be a valid ISO-8601 datetime",
+		}),
 });
+
 
 export const InvoiceValidation = {
 	createInvoiceZodSchema,
-	updateInvoiceZodSchema,
 };
