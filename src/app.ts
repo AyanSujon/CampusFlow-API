@@ -14,6 +14,8 @@ import { notFound } from "./app/middleware/notFound";
 import { AuthRoutes } from "./app/modules/auth/auth.route";
 import { redisClient } from "./app/lib/redis";
 import { FinanceRoutes } from "./app/modules/finance/invoices/invoice.routes";
+import { profileRoutes } from "./app/modules/profiles/profiles.routes";
+
 
 const app: Application = express();
 
@@ -32,6 +34,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use("/api/v1/auth", AuthRoutes);
+
+app.use("/api/v1/profiles", profileRoutes);
 
 app.use("/api/v1/finance", FinanceRoutes);
 
