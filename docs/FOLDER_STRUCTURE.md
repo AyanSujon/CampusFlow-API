@@ -20,12 +20,6 @@ I would also keep the nested domains (finance/payments, student-academics/grades
 
 
 
-
-
-Yes. For your **CampusFlow UMS API**, I’d structure the modular pattern so that **each business module owns its controller, service, repository, validation, routes, types, and Prisma-facing logic**.
-
-I would also keep the nested domains (`finance/payments`, `student-academics/grades`, etc.) independently modular.
-
 ```text
 src/
 │
@@ -86,22 +80,53 @@ src/
 │   │   ├── auth.constants.ts
 │   │   └── auth.utils.ts
 │   │
-│   ├── users/
-│   │   ├── user.controller.ts
-│   │   ├── user.service.ts
-│   │   ├── user.repository.ts
-│   │   ├── user.routes.ts
-│   │   ├── user.validation.ts
-│   │   ├── user.types.ts
-│   │   └── user.constants.ts
-│   │
 │   ├── profiles/
-│   │   ├── profiles.controller.ts
-│   │   ├── profiles.service.ts
-│   │   ├── profiles.repository.ts
-│   │   ├── profiles.routes.ts
-│   │   ├── profiles.validation.ts
-│   │   └── profiles.types.ts
+│   │   │
+│   │   ├── student/
+│   │   │   ├── student-profile.controller.ts
+│   │   │   ├── student-profile.service.ts
+│   │   │   ├── student-profile.repository.ts
+│   │   │   ├── student-profile.routes.ts
+│   │   │   ├── student-profile.validation.ts
+│   │   │   ├── student-profile.types.ts
+│   │   │   └── student-profile.constants.ts
+│   │   │
+│   │   ├── instructor/
+│   │   │   ├── instructor-profile.controller.ts
+│   │   │   ├── instructor-profile.service.ts
+│   │   │   ├── instructor-profile.repository.ts
+│   │   │   ├── instructor-profile.routes.ts
+│   │   │   ├── instructor-profile.validation.ts
+│   │   │   ├── instructor-profile.types.ts
+│   │   │   └── instructor-profile.constants.ts
+│   │   │
+│   │   ├── department-head/
+│   │   │   ├── department-head-profile.controller.ts
+│   │   │   ├── department-head-profile.service.ts
+│   │   │   ├── department-head-profile.repository.ts
+│   │   │   ├── department-head-profile.routes.ts
+│   │   │   ├── department-head-profile.validation.ts
+│   │   │   ├── department-head-profile.types.ts
+│   │   │   └── department-head-profile.constants.ts
+│   │   │
+│   │   ├── accountant/
+│   │   │   ├── accountant-profile.controller.ts
+│   │   │   ├── accountant-profile.service.ts
+│   │   │   ├── accountant-profile.repository.ts
+│   │   │   ├── accountant-profile.routes.ts
+│   │   │   ├── accountant-profile.validation.ts
+│   │   │   ├── accountant-profile.types.ts
+│   │   │   └── accountant-profile.constants.ts
+│   │   │
+│   │   ├── admin/
+│   │   │   ├── admin-profile.controller.ts
+│   │   │   ├── admin-profile.service.ts
+│   │   │   ├── admin-profile.repository.ts
+│   │   │   ├── admin-profile.routes.ts
+│   │   │   ├── admin-profile.validation.ts
+│   │   │   └── admin-profile.types.ts
+│   │   │
+│   │   └── profiles.routes.ts
 │   │
 │   ├── organization/
 │   │   │
@@ -240,15 +265,15 @@ src/
 │   │   │   ├── payment.routes.ts
 │   │   │   ├── payment.validation.ts
 │   │   │   ├── payment.types.ts
+│   │   │   ├── payment.utils.ts
 │   │   │   │
-│   │   │   ├── gateways/
-│   │   │   │   ├── payment-gateway.interface.ts
-│   │   │   │   └── stripe/
-│   │   │   │       ├── stripe.service.ts
-│   │   │   │       ├── stripe.webhook.ts
-│   │   │   │       └── stripe.types.ts
-│   │   │   │
-│   │   │   └── payment.utils.ts
+│   │   │   └── gateways/
+│   │   │       ├── payment-gateway.interface.ts
+│   │   │       │
+│   │   │       └── stripe/
+│   │   │           ├── stripe.service.ts
+│   │   │           ├── stripe.webhook.ts
+│   │   │           └── stripe.types.ts
 │   │   │
 │   │   ├── scholarships/
 │   │   │   ├── scholarship.controller.ts
@@ -313,3 +338,40 @@ src/
     └── express.d.ts
 ```
 
+### One architectural recommendation
+
+I would **not** create a separate profile for every possible RBAC role.
+
+Use profiles for roles that have actual domain-specific personal data:
+
+```text
+STUDENT           → StudentProfile
+INSTRUCTOR        → InstructorProfile
+DEPARTMENT_HEAD   → DepartmentHeadProfile
+ACCOUNTANT        → AccountantProfile
+```
+
+For:
+
+```text
+SUPER_ADMIN
+ADMIN
+```
+
+you can generally keep their identity in the central `User` model and their access controlled through **role + permissions**, rather than creating unnecessary `AdminProfile` / `SuperAdminProfile` tables.
+
+Also, removing `users/` means your `auth` module should handle **User creation and authentication**, while `profiles/*` handles the role-specific extended information. This gives you a clean separation:
+
+```text
+Auth
+  ↓
+User / Role
+  ↓
+Role-specific Profile
+  ↓
+Domain permissions
+  ↓
+Domain modules
+```
+
+That structure should scale well as your UMS grows.

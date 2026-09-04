@@ -162,8 +162,8 @@ CREATE TABLE "instructor_profiles" (
 CREATE TABLE "student_profiles" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
-    "studentId" TEXT NOT NULL,
-    "programId" TEXT NOT NULL,
+    "studentId" TEXT,
+    "programId" TEXT,
     "admissionDate" TIMESTAMP(3),
     "dateOfBirth" TIMESTAMP(3),
     "gender" "Gender",
