@@ -13,8 +13,9 @@ import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 import { notFound } from "./app/middleware/notFound";
 import { AuthRoutes } from "./app/modules/auth/auth.route";
 import { redisClient } from "./app/lib/redis";
-import { FinanceRoutes } from "./app/modules/finance/invoices/invoice.routes";
+// import { financeRoutes } from "./app/modules/finance/invoices/invoice.routes";
 import { profileRoutes } from "./app/modules/profiles/profiles.routes";
+import { financeRoutes } from "./app/modules/finance/finance.routes";
 
 
 const app: Application = express();
@@ -37,7 +38,7 @@ app.use("/api/v1/auth", AuthRoutes);
 
 app.use("/api/v1/profiles", profileRoutes);
 
-app.use("/api/v1/finance", FinanceRoutes);
+app.use("/api/v1/finance", financeRoutes);
 
 
 

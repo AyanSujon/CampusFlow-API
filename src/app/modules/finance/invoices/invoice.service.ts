@@ -149,6 +149,6 @@ const createInvoice = async (
 	return invoice;
 };
 
-export const InvoiceService = {
+export const invoiceService = {
 	createInvoice,
 };

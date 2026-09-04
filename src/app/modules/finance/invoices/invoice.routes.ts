@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { InvoiceValidation } from "./invoice.validation";
+import { invoiceValidation } from "./invoice.validation";
 import { validateRequest } from "../../../middleware/validateRequest";
-import { InvoiceController } from "./invoice.controller";
+import { invoiceController } from "./invoice.controller";
 
 
 
@@ -12,9 +12,9 @@ const router = Router();
 
 
 
-router.post("/invoices",
-    validateRequest(InvoiceValidation.createInvoiceZodSchema),
-    InvoiceController.createInvoice
+router.post("/create",
+    validateRequest(invoiceValidation.createInvoiceZodSchema),
+    invoiceController.createInvoice
      );
 
 
@@ -24,5 +24,4 @@ router.post("/invoices",
 
 
 
-
-export const FinanceRoutes = router;
+export const financeRoutes = router;

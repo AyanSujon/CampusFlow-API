@@ -2,13 +2,13 @@ import { Request, Response } from "express";
 import httpStatus from "http-status";
 import { sendResponse } from "../../../utils/sendResponse";
 import { catchAsync } from "../../../utils/catchAsync";
-import { InvoiceService } from "./invoice.service";
+import { invoiceService } from "./invoice.service";
 
 
 const createInvoice = catchAsync(async (req: Request, res: Response) => {
 	const payload = req.body;
 
-	const result = await InvoiceService.createInvoice(payload);
+	const result = await invoiceService.createInvoice(payload);
 
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
@@ -18,6 +18,8 @@ const createInvoice = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
-export const InvoiceController = {
+export const invoiceController = {
 	createInvoice,
 };
+
+

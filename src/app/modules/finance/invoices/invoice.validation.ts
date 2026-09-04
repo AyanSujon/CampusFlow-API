@@ -30,6 +30,6 @@ const createInvoiceZodSchema = z.object({
 });
 
 
-export const InvoiceValidation = {
+export const invoiceValidation = {
 	createInvoiceZodSchema,
 };

@@ -30,4 +30,4 @@ router.post("/create-profile",
 
 
 
-export const StudentProfileRoutes = router;
+export const studentProfileRoutes = router;
