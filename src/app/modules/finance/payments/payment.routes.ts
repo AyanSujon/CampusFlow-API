@@ -25,7 +25,7 @@ const router = express.Router();
 router.post(
 	"/create",
 	auth(Role.STUDENT),
-	validateRequest(createPaymentValidationSchema),
+	// validateRequest(createPaymentValidationSchema),
 
 	paymentController.createPayment,
 );
