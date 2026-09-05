@@ -97,10 +97,11 @@ const registerStudent = async (payload: IRegisterStudentPayload) => {
 
 	// JWT Payload
 	const jwtPayload = {
-		userId: user.id,
-		name: user.name,
+		id: user.id,
 		email: user.email,
+		name: user.name,
 		role: user.role,
+		
 	};
 
 	// Access Token
@@ -163,9 +164,9 @@ const loginUser = async (payload: ILoginUserPayload) => {
 	}
 
 	const jwtPayload = {
-		userId: user.id,
-		name: user.name,
+		id: user.id,
 		email: user.email,
+		name: user.name,
 		role: user.role,
 	};
 
@@ -232,9 +233,9 @@ const refreshToken = async (token: string) => {
 	}
 
 	const jwtPayload = {
-		userId: user.id,
-		name: user.name,
+		id: user.id,
 		email: user.email,
+		name: user.name,
 		role: user.role,
 	};
 
@@ -358,9 +359,9 @@ const googleLogin = async (payload: IGoogleLoginPayload) => {
 	}
 
 	const jwtPayload = {
-		userId: user.id,
-		name: user.name,
+		id: user.id,
 		email: user.email,
+		name: user.name,
 		role: user.role,
 	};
 

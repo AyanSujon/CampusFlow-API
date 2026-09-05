@@ -36,21 +36,27 @@ model Invoice {
 /// client — a student can create a payment but can never set
 /// `verifiedById`/`status = SUCCESS` themselves.
 model Payment {
-  id            String        @id @default(uuid())
+  id            String         @id @default(uuid())
   invoiceId     String
   studentId     String
-  amount        Decimal       @db.Decimal(12, 2)
-  method        PaymentMethod
+  amount        Decimal        @db.Decimal(12, 2)
+  method        PaymentMethod?
+  gateway       PaymentGateway?
   /// Payment gateway's own reference — used to reconcile without trusting
   /// client-supplied status.
-  transactionId String?       @unique
-  status        PaymentStatus @default(PENDING)
+  transactionId String?        @unique
+  status        PaymentStatus  @default(PENDING)
+
+  // payment gateway
+  gatewaySessionId       String?
+  gatewayPaymentIntentId String?
+  getewayRowData         Json?
   /// The ACCOUNTANT who verified/reconciled this payment.
-  verifiedById  String?
-  verifiedAt    DateTime?
-  paidAt        DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  verifiedById           String?
+  verifiedAt             DateTime?
+  paidAt                 DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   invoice    Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
   student    StudentProfile @relation(fields: [studentId], references: [id], onDelete: Restrict)
@@ -58,6 +64,7 @@ model Payment {
 
   transactions FinancialTransaction[]
 
+  @@index([gateway])
   @@index([invoiceId])
   @@index([studentId])
   @@index([status])

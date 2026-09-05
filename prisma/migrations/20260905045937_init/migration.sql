@@ -50,7 +50,10 @@ CREATE TYPE "ResultStatus" AS ENUM ('DRAFT', 'SUBMITTED', 'REJECTED', 'APPROVED'
 CREATE TYPE "InvoiceStatus" AS ENUM ('UNPAID', 'PARTIALLY_PAID', 'PAID', 'OVERDUE', 'CANCELLED');
 
 -- CreateEnum
-CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'CARD', 'BANK_TRANSFER', 'MOBILE_BANKING', 'ONLINE_GATEWAY', 'OTHER');
+CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'CARD', 'BANK_TRANSFER', 'MOBILE_BANKING', 'OTHER');
+
+-- CreateEnum
+CREATE TYPE "PaymentGateway" AS ENUM ('STRIPE', 'SSLCOMMERZ', 'BKASH', 'MANUAL');
 
 -- CreateEnum
 CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'SUCCESS', 'FAILED', 'REFUNDED');
@@ -491,9 +494,13 @@ CREATE TABLE "payments" (
     "invoiceId" TEXT NOT NULL,
     "studentId" TEXT NOT NULL,
     "amount" DECIMAL(12,2) NOT NULL,
-    "method" "PaymentMethod" NOT NULL,
+    "method" "PaymentMethod",
+    "gateway" "PaymentGateway",
     "transactionId" TEXT,
     "status" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
+    "gatewaySessionId" TEXT,
+    "gatewayPaymentIntentId" TEXT,
+    "getewayRowData" JSONB,
     "verifiedById" TEXT,
     "verifiedAt" TIMESTAMP(3),
     "paidAt" TIMESTAMP(3),
@@ -788,6 +795,9 @@ CREATE INDEX "invoices_status_idx" ON "invoices"("status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "payments_transactionId_key" ON "payments"("transactionId");
+
+-- CreateIndex
+CREATE INDEX "payments_gateway_idx" ON "payments"("gateway");
 
 -- CreateIndex
 CREATE INDEX "payments_invoiceId_idx" ON "payments"("invoiceId");

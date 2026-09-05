@@ -1,6 +1,10 @@
 import express from "express";
-import { auth } from "../../../middleware/checkAuth";
+
 import { paymentController } from "./payment.controller";
+import { validateRequest } from "../../../middleware/validateRequest";
+import { createPaymentValidationSchema } from "./payment.validation";
+import { Role } from "../../../../generated/prisma/enums";
+import { auth } from "../../../middleware/checkAuth";
 
 // import auth from "../../middleware/auth";
 // import validateRequest from "../../middleware/validateRequest";
@@ -11,10 +15,18 @@ import { paymentController } from "./payment.controller";
 const router = express.Router();
 
 // Create payment
+// router.post(
+// 	"/create",
+// 	auth(Role.STUDENT),
+// 	// validateRequest(PaymentValidation.createPaymentValidationSchema),
+// 	paymentController.createPayment,
+// );
+
 router.post(
 	"/create",
-	auth("STUDENT"),
-	// validateRequest(PaymentValidation.createPaymentValidationSchema),
+	auth(Role.STUDENT),
+	validateRequest(createPaymentValidationSchema),
+
 	paymentController.createPayment,
 );
 
@@ -41,4 +53,3 @@ router.post(
 // );
 
 export const paymentRoutes = router;
-

@@ -267,13 +267,20 @@ enum InvoiceStatus {
   CANCELLED
 }
 
+
 enum PaymentMethod {
   CASH
   CARD
   BANK_TRANSFER
   MOBILE_BANKING
-  ONLINE_GATEWAY
   OTHER
+}
+
+enum PaymentGateway {
+  STRIPE
+  SSLCOMMERZ
+  BKASH
+  MANUAL
 }
 
 enum PaymentStatus {
