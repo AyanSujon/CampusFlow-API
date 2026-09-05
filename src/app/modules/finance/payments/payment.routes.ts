@@ -29,6 +29,10 @@ router.post(
 
 	paymentController.createPayment,
 );
+router.post(
+	"/webhook/stripe-verify",
+	paymentController.stripeWebhook,
+);
 
 // // Create Stripe checkout session
 // router.post(

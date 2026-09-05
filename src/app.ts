@@ -30,11 +30,14 @@ app.use(
 // Enable URL-encoded form data parsing
 app.use(express.urlencoded({ extended: true }));
 
-// app.post(
-//   "/api/payments/webhook/stripe",
-//   express.raw({ type: "application/json" }),
-//   stripeWebhook
-// );
+// Stripe webhook MUST come before express.json()
+app.use(
+    "/api/v1/finance/payments/webhook",
+    express.raw({
+        type: "application/json",
+    })
+);
+
 
 // Middleware to parse JSON bodies
 app.use(express.json());

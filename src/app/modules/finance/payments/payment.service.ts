@@ -114,7 +114,7 @@ const createPayment = async (
 					gatewaySessionId:
 						checkout.sessionId,
 
-					gatewayPaymentId:
+					gatewayPaymentIntentId:
 						checkout.paymentId,
 
 					getewayRowData:

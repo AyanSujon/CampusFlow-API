@@ -169,7 +169,7 @@ const handleStripeWebhook = async (
 					},
 					data: {
 						status: "SUCCESS",
-						gatewayPaymentId:
+						gatewayPaymentIntentId:
 							typeof session.payment_intent ===
 							"string"
 								? session.payment_intent
