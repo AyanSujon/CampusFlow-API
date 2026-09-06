@@ -13,6 +13,10 @@ router.post("/create",
     facultyController.createFaculty
      );
 
+router.get("/all",
+    facultyController.getAllFaculties
+     );
+
 
 
 

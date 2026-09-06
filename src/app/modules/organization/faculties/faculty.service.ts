@@ -2,8 +2,6 @@ import httpStatus from "http-status";
 import { prisma } from "../../../lib/prisma";
 import { AppError } from "../../../utils/AppError";
 
-
-
 const createFaculty = async (payload: ICreateFacultyPayload) => {
 	const { code, name, description, deanUserId } = payload;
 
@@ -59,6 +57,37 @@ const createFaculty = async (payload: ICreateFacultyPayload) => {
 	return faculty;
 };
 
+
+const getAllFaculties = async () => {
+	const faculties = await prisma.faculty.findMany({
+		select: {
+			id: true,
+			code: true,
+			name: true,
+			description: true,
+			isActive: true,
+			createdAt: true,
+			updatedAt: true,
+
+			dean: {
+				select: {
+					id: true,
+					name: true,
+					email: true,
+				},
+			},
+		},
+	});
+
+	return faculties;
+};
+
+
+
+
+
+
 export const facultyService = {
 	createFaculty,
+	getAllFaculties,
 };
