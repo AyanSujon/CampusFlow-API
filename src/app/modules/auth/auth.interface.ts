@@ -24,7 +24,7 @@ export interface IRegisterStudentPayload {
 }
 
 export interface IRequestUser {
-	userId: string;
+	id: string;
 	email: string;
 	name: string;
 	role: Role;

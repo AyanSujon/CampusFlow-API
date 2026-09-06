@@ -15,6 +15,7 @@ import { profileRoutes } from "./app/modules/profiles/profiles.routes";
 import { financeRoutes } from "./app/modules/finance/finance.routes";
 import { globalRateLimiter } from "./app/middleware/rateLimiter";
 import { healthCheck } from "./app/middleware/healthCheck";
+import { organizationRoutes } from "./app/modules/organization/organization.routes";
 
 const app: Application = express();
 
@@ -51,6 +52,7 @@ app.use(cookieParser());
 app.use("/api/v1/auth", AuthRoutes);
 app.use("/api/v1/profiles", profileRoutes);
 app.use("/api/v1/finance", financeRoutes);
+app.use("/api/v1/organization", organizationRoutes);
 
 // 8. Health check
 app.get("/", healthCheck);
