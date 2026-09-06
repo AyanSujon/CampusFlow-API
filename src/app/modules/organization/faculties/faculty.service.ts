@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 import { prisma } from "../../../lib/prisma";
 import { AppError } from "../../../utils/AppError";
+import { ICreateFacultyPayload } from "./faculty.interface";
 
 const createFaculty = async (payload: ICreateFacultyPayload) => {
 	const { code, name, description, deanUserId } = payload;

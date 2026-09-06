@@ -33,6 +33,9 @@ const getAllFaculties = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+
+
+
 export const facultyController = {
 	createFaculty,
 	getAllFaculties,
