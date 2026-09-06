@@ -14,6 +14,7 @@ import { AuthRoutes } from "./app/modules/auth/auth.route";
 import { profileRoutes } from "./app/modules/profiles/profiles.routes";
 import { financeRoutes } from "./app/modules/finance/finance.routes";
 import { globalRateLimiter } from "./app/middleware/rateLimiter";
+import { healthCheck } from "./app/middleware/healthCheck";
 
 const app: Application = express();
 
@@ -52,21 +53,7 @@ app.use("/api/v1/profiles", profileRoutes);
 app.use("/api/v1/finance", financeRoutes);
 
 // 8. Health check
-app.get("/", async (req: Request, res: Response) => {
-	res.status(httpStatus.OK).json({
-		success: true,
-		message: "Welcome to CampusFlow - University Management System",
-		data: {
-			name: "CampusFlow API",
-			description: "University Management System Backend API",
-			version: "1.0.0",
-			status: "healthy",
-			environment: config.node_env,
-			timestamp: new Date().toISOString(),
-			uptime: process.uptime(),
-		},
-	});
-});
+app.get("/", healthCheck);
 
 // 9. 404 not found handler
 app.use(notFound);
@@ -75,3 +62,4 @@ app.use(notFound);
 app.use(globalErrorHandler);
 
 export default app;
+
