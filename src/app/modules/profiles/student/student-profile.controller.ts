@@ -11,7 +11,7 @@ const createStudentProfile = catchAsync(async (req: Request, res: Response) => {
 		throw new Error("User is not authenticated");
 	}
 
-	const userId = req.user?.userId as string;
+	const userId = req.user?.id as string;
 	const payload: ICreateStudentProfilePayload = req.body;
 
 	const result = await studentProfileService.createStudentProfile(

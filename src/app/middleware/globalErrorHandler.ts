@@ -9,7 +9,12 @@ export const globalErrorHandler = async (
 	res: Response,
 	_next: NextFunction,
 ) => {
+	// Log the error based on the environment
 	if (config.node_env === "development") {
+		console.log("Error from Global Error Handler", err);
+	}
+	// for production, we can log the error to a file or a logging service instead of console
+	if (config.node_env === "production") {
 		console.log("Error from Global Error Handler", err);
 	}
 
