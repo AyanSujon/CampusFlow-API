@@ -1,5 +1,6 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import helmet from "helmet";
 import crypto from "crypto";
 import express, {
 	type Application,
@@ -13,7 +14,6 @@ import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 import { notFound } from "./app/middleware/notFound";
 import { AuthRoutes } from "./app/modules/auth/auth.route";
 import { redisClient } from "./app/lib/redis";
-// import { financeRoutes } from "./app/modules/finance/invoices/invoice.routes";
 import { profileRoutes } from "./app/modules/profiles/profiles.routes";
 import { financeRoutes } from "./app/modules/finance/finance.routes";
 import { globalRateLimiter } from "./app/middleware/rateLimiter";
@@ -38,8 +38,14 @@ app.use(
         type: "application/json",
     })
 );
+
+// Security headers
+app.use(helmet());
+
+
 // Apply rate limiting to all requests
 app.use(globalRateLimiter);
+
 
 // Middleware to parse JSON bodies
 app.use(express.json());
