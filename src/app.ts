@@ -1,10 +1,8 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
-import crypto from "crypto";
 import express, {
 	type Application,
-	NextFunction,
 	type Request,
 	type Response,
 } from "express";
@@ -13,14 +11,16 @@ import config from "./app/config";
 import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 import { notFound } from "./app/middleware/notFound";
 import { AuthRoutes } from "./app/modules/auth/auth.route";
-import { redisClient } from "./app/lib/redis";
 import { profileRoutes } from "./app/modules/profiles/profiles.routes";
 import { financeRoutes } from "./app/modules/finance/finance.routes";
 import { globalRateLimiter } from "./app/middleware/rateLimiter";
 
-
 const app: Application = express();
 
+// 1. Security headers
+app.use(helmet());
+
+// 2. CORS
 app.use(
 	cors({
 		origin: config.frontend_url,
@@ -28,71 +28,30 @@ app.use(
 	}),
 );
 
-// Enable URL-encoded form data parsing
-app.use(express.urlencoded({ extended: true }));
-
-// Stripe webhook MUST come before express.json()
-app.use(
-    "/api/v1/finance/payments/webhook",
-    express.raw({
-        type: "application/json",
-    })
-);
-
-// Security headers
-app.use(helmet());
-
-
-// Apply rate limiting to all requests
+// 3. Rate limiting
 app.use(globalRateLimiter);
 
+// 4. Stripe webhook - BEFORE express.json()
+app.use(
+	"/api/v1/finance/payments/webhook",
+	express.raw({
+		type: "application/json",
+	}),
+);
 
-// Middleware to parse JSON bodies
+// 5. Body parsers
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// 6. Cookies
 app.use(cookieParser());
 
+// 7. Routes
 app.use("/api/v1/auth", AuthRoutes);
-
 app.use("/api/v1/profiles", profileRoutes);
-
 app.use("/api/v1/finance", financeRoutes);
 
-
-
-
-
-
-
-app.get("/test", async (req: Request, res: Response, next : NextFunction) => {
-
-	try {
-
-		// 100000 > 999999 > 1000000
-			const otp = crypto.randomInt(100000, 1000000) // 1, 2, 3, 4, 5, 6,7,8 ,9, 10 => X-11
-		
-			// await redisClient.set("forgot-password-otp:patient1@gmail.com", otp, {
-			// 	expiration : {
-			// 		type : "EX",
-			// 		value : 60
-			// 	}
-			// })
-			
-
-		
-
-
-		res.status(httpStatus.OK).json({
-			success: true,
-			message: "Welcome to PH Healthcare System Backend",
-			data : otp
-		});
-	} catch (error) {
-		console.log(error);
-		next(error)
-	}
-})
-
-// Basic route / Health Check
+// 8. Health check
 app.get("/", async (req: Request, res: Response) => {
 	res.status(httpStatus.OK).json({
 		success: true,
@@ -109,7 +68,10 @@ app.get("/", async (req: Request, res: Response) => {
 	});
 });
 
-app.use(globalErrorHandler);
+// 9. 404 not found handler
 app.use(notFound);
+
+// 10. Global error handler
+app.use(globalErrorHandler);
 
 export default app;
