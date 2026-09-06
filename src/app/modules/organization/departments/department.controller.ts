@@ -20,7 +20,46 @@ const createDepartment = catchAsync(async (req: Request, res: Response) => {
 
 
 
+// const getAllDepartments = catchAsync(async (req: Request, res: Response) => {
+// 	const payload = req.body;
 
+// 	const result = await departmentsService.getAllDepartments(payload);
+
+// 	sendResponse(res, {
+// 		statusCode: httpStatus.OK,
+// 		success: true,
+// 		message: " Retrived All Departments Successfully",
+// 		data: result,
+// 	});
+// });
+
+
+
+
+const getAllDepartments = catchAsync(
+	async (req: Request, res: Response) => {
+		const payload = req.query;
+
+		const result =
+			await departmentsService.getAllDepartments({
+				page: Number(payload.page) || 1,
+				limit: Number(payload.limit) || 10,
+				search: payload.search as string | undefined,
+				facultyId: payload.facultyId as string | undefined,
+				isActive:
+					payload.isActive !== undefined
+						? payload.isActive === "true"
+						: undefined,
+			});
+
+		sendResponse(res, {
+			statusCode: httpStatus.OK,
+			success: true,
+			message: "Retrieved All Departments Successfully",
+			data: result,
+		});
+	},
+);
 
 
 
@@ -38,6 +77,8 @@ const createDepartment = catchAsync(async (req: Request, res: Response) => {
 
 export const departmentsController = {
     createDepartment,
+    getAllDepartments,
+
 
 
 }

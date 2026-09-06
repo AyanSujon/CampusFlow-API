@@ -2,8 +2,11 @@ import httpStatus from "http-status";
 
 import { prisma } from "../../../lib/prisma";
 import { AppError } from "../../../utils/AppError";
-import { CreateDepartmentPayload } from "./department.interface";
+import { CreateDepartmentPayload, GetAllDepartmentsPayload } from "./department.interface";
 import { Role } from "../../../../generated/prisma/enums";
+
+
+
 
 const createDepartment = async (payload: CreateDepartmentPayload) => {
 	const {
@@ -113,6 +116,135 @@ const createDepartment = async (payload: CreateDepartmentPayload) => {
 	return department;
 };
 
+
+
+
+
+// Example requests and filtering 
+// GET /api/departments
+// GET /api/departments?page=1&limit=10
+// GET /api/departments?search=computer
+// GET /api/departments?search=computer
+// GET /api/departments?facultyId=550e8400-e29b-41d4-a716-446655440000
+// GET /api/departments?isActive=true
+// GET /api/departments?page=1&limit=10&search=computer&facultyId=550e8400-e29b-41d4-a716-446655440000&isActive=true
+
+const getAllDepartments = async (
+	payload: GetAllDepartmentsPayload,
+) => {
+	const {
+		page = 1,
+		limit = 10,
+		search,
+		facultyId,
+		isActive,
+	} = payload;
+
+	const skip = (page - 1) * limit;
+
+	const where = {
+		isDeleted: false,
+
+		...(facultyId && {
+			facultyId,
+		}),
+
+		...(isActive !== undefined && {
+			isActive,
+		}),
+
+		...(search && {
+			OR: [
+				{
+					name: {
+						contains: search,
+						mode: "insensitive" as const,
+					},
+				},
+				{
+					code: {
+						contains: search,
+						mode: "insensitive" as const,
+					},
+				},
+			],
+		}),
+	};
+
+	const [departments, total] = await prisma.$transaction([
+		prisma.department.findMany({
+			where,
+			skip,
+			take: limit,
+
+			orderBy: {
+				createdAt: "desc",
+			},
+
+			select: {
+				id: true,
+				code: true,
+				name: true,
+				description: true,
+				isActive: true,
+				createdAt: true,
+				updatedAt: true,
+
+				faculty: {
+					select: {
+						id: true,
+						code: true,
+						name: true,
+					},
+				},
+
+				head: {
+					select: {
+						id: true,
+						name: true,
+						email: true,
+					},
+				},
+
+				_count: {
+					select: {
+						users: true,
+						programs: true,
+						courses: true,
+					},
+				},
+			},
+		}),
+
+		prisma.department.count({
+			where,
+		}),
+	]);
+
+	return {
+		meta: {
+			page,
+			limit,
+			total,
+			totalPages: Math.ceil(total / limit),
+		},
+
+		data: departments,
+	};
+};
+
+
+
+
+
 export const departmentsService = {
 	createDepartment,
+    getAllDepartments,
 };
+
+
+
+
+
+
+

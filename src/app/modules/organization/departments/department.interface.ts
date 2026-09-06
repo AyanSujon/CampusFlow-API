@@ -5,3 +5,14 @@ export interface CreateDepartmentPayload {
 	description?: string;
     headUserId: string;
 }
+
+
+
+export interface GetAllDepartmentsPayload {
+	page?: number;
+	limit?: number;
+	search?: string;
+	facultyId?: string;
+	isActive?: boolean;
+}
+
