@@ -1,43 +1,15 @@
 # University Management System — Role Structure & RBAC Design
 
-> **Status:** Production-oriented reference architecture — reconciled against the implemented schema
-> **Primary Roles:** `SUPER_ADMIN`, `ADMIN`, `DEPARTMENT_HEAD`, `INSTRUCTOR`, `STUDENT`, `ACCOUNTANT`
-> **Authorization model:** Single-role RBAC + per-user resource permissions + scoped authorization (University / Faculty / Department / Course / Self / Financial)
+> **Status:** Production-oriented reference architecture  
+> **Primary Roles:** `SUPER_ADMIN`, `ADMIN`, `DEPARTMENT_HEAD`, `INSTRUCTOR`, `STUDENT`, `ACCOUNTANT`  
+> **Authorization model:** Single-role RBAC + per-user resource permissions + scoped authorization (University / Department / Course / Self / Financial)  
 > **Security principles:** Least Privilege, Separation of Duties, Deny by Default, Backend Enforcement
-
----
-
-## Changelog — what changed from the original document, and why
-
-This revision reconciles the original `ORGANIZATIONAL_HIERARCHY.md` against
-everything actually built since: `prisma/schema/*.prisma` (9 units, 34
-models), `docs/DATABASE_SCHEMA_README.md`, `docs/API_INSTRUCTION.md`, and
-`docs/MODULAR_ARCHITECTURE_GUIDE.md`. **Only this file was changed — no
-other project file was edited as part of this pass.**
-
-| # | Change | Reason |
-|---|---|---|
-| 1 | **Unified the role hierarchy diagram everywhere it appears** (§1.1, §24, Conclusion). The original had two different, mutually inconsistent trees: §1.1 placed `ACCOUNTANT` directly under `SUPER_ADMIN` (a sibling of `ADMIN`) with `STUDENT` unplaced in the tree at all; §24's "Final Recommended Structure" nested `STUDENT` under `INSTRUCTOR` under `DEPARTMENT_HEAD`. This revision uses one consistent tree everywhere: `SUPER_ADMIN → ADMIN → (DEPARTMENT_HEAD → INSTRUCTOR, ACCOUNTANT, STUDENT)`. | This is the tree every other project document already uses (`DATABASE_SCHEMA_README.md`, `API_INSTRUCTION.md`, `MODULAR_ARCHITECTURE_GUIDE.md`, `README.md`) — `STUDENT` and `ACCOUNTANT` are both direct administrative children of `ADMIN`, siblings of `DEPARTMENT_HEAD`, not nested inside the academic chain. Two (or three) different trees in the source-of-truth document made it impossible to know which one the implementation should follow. |
-| 2 | **Added `Faculty` as a top organizational layer**, above `Department` (`Faculty → Department → Program`), with `FACULTY_READ`/`FACULTY_CREATE`/`FACULTY_UPDATE` in the `Permission` enum listing (§11) and a dean-assignment note (`Faculty.deanUserId` — no dedicated `DEAN` role, same pattern as `Department.headUserId`). Added to the core entity list (§10.1), the scope discussion (§6), and the permission matrix (§3). | The original document has no `Faculty` concept at all — `Department` is the top level. The implemented schema has `Faculty` as Unit 3's top layer; this document needs to describe what was actually built. |
-| 3 | **Replaced the bare `Student`/`Instructor` entities (§10.1) with the real profile-per-role model**: `SuperAdminProfile`, `AdminProfile`, `DepartmentHeadProfile`, `InstructorProfile`, `StudentProfile`, `AccountantProfile` — each a strict 1-to-1 extension of `User`. | The implemented schema keeps `User` as identity-only and puts role-specific fields in six dedicated profile tables (Unit 2), including a `SuperAdminProfile` kept deliberately separate from `AdminProfile` (it carries MFA/IP-allowlist fields for privileged accounts). The original's flat `Student`/`Instructor` entities don't reflect this. |
-| 4 | **Added `Section` as an explicit entity** (§10.1, §6.3–6.4, §5.1 workflow note). `StudentEnrollment`, `Attendance`, `Assignment`, `Exam`, and `Result` all key off `Section` (a course offered in a specific semester), not off `Course` directly. | The original's core-entity list omits `Section` entirely and implies these tables relate straight to `Course`. The implemented schema (Unit 5) has a `Section` layer between them — a student enrolls in a specific section, not a course in the abstract. |
-| 5 | **Added `FinancialAdjustmentRequest` as a real entity** and rewrote the "Sensitive financial adjustment" workflow (§14) with its actual fields (`requestedById`, `approvedById`, `status` via a `FinancialAdjustmentStatus` enum, an optional link to the resulting `FinancialTransaction`). | The original only sketched this workflow conceptually, with no backing table. One now exists in the schema (Unit 7) — this document should describe the real model, not a placeholder diagram. |
-| 6 | **Corrected the conceptual Prisma example (§11)** to match the real schema: `id String @id @default(uuid())` (not `cuid()`), `password` (not `passwordHash`), and `facultyId String?` added alongside `departmentId String?` on `User`. Added a minimal `Faculty` model to the same snippet. | The original's conceptual snippet used field names/ID strategies that don't match what was actually implemented — a reader copying it would get a schema inconsistent with the real one. |
-| 7 | **Fixed the course-scope check example** (§6.3, §10.4) to reference `CourseInstructor.instructorId`, not `CourseInstructor.userId`. | That's the field's real name in the implemented schema — `userId` doesn't exist on that table. |
-| 8 | **Kept `ROLE_CHANGED` as a single `AuditAction`**, rather than the original's `ROLE_ASSIGNED`/`ROLE_REVOKED` pair (§15.4). Everything else in the original's audit-action list (`INVOICE_ADJUSTED`, `SYSTEM_SETTING_CHANGED`, etc.) was already implemented and is kept as-is. | This is what's already implemented and consistently documented elsewhere — one transition action, with the old/new role captured in `AuditLog.metadata`, rather than two separate enum values. Flagged here as a deliberate simplification, not an oversight. |
-| 9 | **Aligned the guard-pattern examples (§19)** with the real middleware names from `MODULAR_ARCHITECTURE_GUIDE.md` (`requirePermission`, `requireScope`) instead of the original's one-off-per-check function names (`requireDepartmentScope()`, `requireCourseInstructorScope()`, etc.), and **updated the soft-delete list (§23.5)** to the exact table list already documented in `DATABASE_SCHEMA_README.md` (`User`, `Faculty`, `Department`, `Program`, `Subject`, `Course`) instead of a generic description. | Naming/detail alignment with the code-facing docs, so a reader doesn't find two different names for the same middleware. |
-
-Everything else — the role responsibilities, the permission matrix values,
-the workflow diagrams, the security principles, the checklists — is
-unchanged from the original, because it was already accurate and already
-consistent with the implemented schema.
 
 ---
 
 ## 0. Design Assumptions
 
-This document treats the six requested roles as **single primary business
-roles**. Every user has **exactly one role**.
+This document treats the six requested roles as **single primary business roles**. Every user has **exactly one role**.
 
 The authorization model follows these rules:
 
@@ -59,7 +31,7 @@ The authorization model follows these rules:
 
 ### Core Authorization Rule
 
-```
+```text
 User
  ├── role: Role
  └── permissions: Permission[]
@@ -70,72 +42,70 @@ Authorization =
     + Data Scope
     + Business Rule
 ```
+
 > **Important:** The exact business rules for admissions, registrar functions, examination controllers, scholarship committees, and payment gateways are institution-specific. They are represented here through the six requested roles and can later be extended without introducing multi-role users.
 
 ---
 
 # 1. Role Hierarchy
 
-## 1.1 Logical Hierarchy
+## 1.1 Recommended Logical Hierarchy
 
-```
+The recommended hierarchy is:
+
+```text
                          SUPER_ADMIN
                               │
-                            ADMIN
-                              │
-                 ┌────────────┼────────────┐
-                 │             │             │
-         DEPARTMENT_HEAD  ACCOUNTANT     STUDENT
+                 ┌────────────┴────────────┐
+                 │                         │
+               ADMIN                  ACCOUNTANT
                  │
-             INSTRUCTOR
+        ┌────────┴─────────┐
+        │                  │
+DEPARTMENT_HEAD        University-wide
+        │              administrative
+        │                 operations
+        │
+   INSTRUCTOR
+        │
+     STUDENT
 ```
 
-This single tree replaces the original document's inconsistent versions
-(see Changelog #1). `ACCOUNTANT` and `STUDENT` sit under `ADMIN`
-administratively (an `ADMIN` can create/suspend either account type, same
-as any other staff or student account) but `ACCOUNTANT` is functionally
-isolated from the academic chain — see below.
+### Why `ACCOUNTANT` is parallel
 
-### Why `ACCOUNTANT` is functionally parallel, even though administratively under `ADMIN`
+`ACCOUNTANT` should **not** sit under `DEPARTMENT_HEAD` or `INSTRUCTOR`.
 
-`ACCOUNTANT` should **not** inherit any academic capability from
-`DEPARTMENT_HEAD` or `INSTRUCTOR`, and vice versa. Financial operations are
-separated from academic authority at the permission and scope level, even
-though both ultimately report to `ADMIN` for account management purposes:
+Financial operations must be separated from academic authority:
 
-```
-Academic Authority (capability):
-SUPER_ADMIN → ADMIN → DEPARTMENT_HEAD → INSTRUCTOR
+```text
+Academic Authority:
+SUPER_ADMIN → ADMIN → DEPARTMENT_HEAD → INSTRUCTOR → STUDENT
 
-Financial Authority (capability):
-SUPER_ADMIN → ADMIN → ACCOUNTANT
-
-Self-Service Authority (capability):
-SUPER_ADMIN → ADMIN → STUDENT
+Financial Authority:
+SUPER_ADMIN → ADMIN
+                  └── ACCOUNTANT
 ```
 
-`ADMIN` may coordinate university operations, while `ACCOUNTANT` owns
-day-to-day financial processing. An accountant must not gain academic write
-permissions merely because both roles are administratively created by
-`ADMIN`.
+`ADMIN` may coordinate university operations, while `ACCOUNTANT` owns day-to-day financial processing. An accountant must not gain academic write permissions merely because they have financial authority.
 
 ## 1.2 Authority Levels
 
-| Role              | Authority Level | Primary Scope                  | Manages                                  |
-| ----------------- | --------------- | ------------------------------ | ----------------------------------------- |
-| `SUPER_ADMIN`     | 6               | Global                         | System admins, configuration, security   |
-| `ADMIN`           | 5               | University-wide administrative | Operational users/resources              |
-| `DEPARTMENT_HEAD` | 4               | Department                     | Instructors, department academics        |
-| `INSTRUCTOR`      | 3               | Assigned course/section        | Course students, attendance, assessments |
-| `ACCOUNTANT`      | 3\*             | Financial                      | Payments, invoices, financial records    |
-| `STUDENT`         | 1               | Self                           | Own profile and self-service             |
+| Role | Authority Level | Primary Scope | Manages |
+|---|---:|---|---|
+| `SUPER_ADMIN` | 6 | Global | System admins, configuration, security |
+| `ADMIN` | 5 | University-wide administrative | Operational users/resources |
+| `DEPARTMENT_HEAD` | 4 | Department | Instructors, department academics |
+| `INSTRUCTOR` | 3 | Assigned course | Course students, attendance, assessments |
+| `ACCOUNTANT` | 3* | Financial | Payments, invoices, financial records |
+| `STUDENT` | 1 | Self | Own profile and self-service |
 
-`ACCOUNTANT` has a separate functional authority level; it should not be
-numerically interpreted as lower than `INSTRUCTOR`.
+`ACCOUNTANT` has a separate functional authority level; it should not be numerically interpreted as lower than `INSTRUCTOR`.
 
 ## 1.3 Override and Permission Governance Rule
 
-```
+Use explicit administrative authority rather than implicit permission inheritance:
+
+```text
 SUPER_ADMIN
   ├─ has system-wide authority
   ├─ manages ADMIN resource permissions
@@ -151,7 +121,7 @@ DEPARTMENT_HEAD
   └─ uses role-defined permissions within own department only
 
 INSTRUCTOR
-  └─ uses role-defined permissions within assigned courses/sections only
+  └─ uses role-defined permissions within assigned courses only
 
 ACCOUNTANT
   └─ uses role-defined financial permissions only
@@ -162,9 +132,7 @@ STUDENT
 
 ### Important Rule
 
-A higher business role does not automatically inherit every lower-role
-operation. Authorization must still evaluate the required permission,
-resource scope, and workflow state.
+A higher business role does not automatically inherit every lower-role operation. Authorization must still evaluate the required permission, resource scope, and workflow state.
 
 ---
 
@@ -178,7 +146,7 @@ System owner/operator with global authority over UMS configuration, security, ad
 
 ### Scope
 
-- Global / entire university (all faculties, all departments)
+- Global / entire university
 - System configuration
 - Security
 - RBAC
@@ -200,7 +168,6 @@ System owner/operator with global authority over UMS configuration, security, ad
 ### Permissions
 
 **Users**
-
 - Full lifecycle management, subject to audit.
 - Create/manage admins.
 - Suspend/restore accounts.
@@ -208,16 +175,13 @@ System owner/operator with global authority over UMS configuration, security, ad
 - Grant, revoke, or replace resource permissions for `ADMIN` users.
 
 **Academic**
-
-- Full management of faculties, departments, programs, courses, subjects, sessions, semesters and academic records.
+- Full management of departments, programs, courses, subjects, sessions, semesters, schedules and academic records.
 
 **Finance**
-
 - Full oversight of payments, invoices, scholarships and financial reports.
 - Should not routinely perform day-to-day accounting if Separation of Duties is required.
 
 **Security**
-
 - Manage `ADMIN` resource permissions and privileged authorization policy.
 - Read audit logs.
 - Configure authentication/security policies.
@@ -225,15 +189,13 @@ System owner/operator with global authority over UMS configuration, security, ad
 ### Restrictions
 
 Even `SUPER_ADMIN` should not:
-
 - silently delete audit evidence;
 - modify audit logs directly;
 - bypass logging;
 - share credentials;
 - perform sensitive production actions without traceability.
 
-Recommended controls (matches `SuperAdminProfile.mfaEnabled` / `ipWhitelist`):
-
+Recommended controls:
 - MFA.
 - Short privileged sessions.
 - Step-up authentication for critical actions.
@@ -258,7 +220,7 @@ University-wide operational administrator responsible for day-to-day administrat
 
 - Manage students, instructors and operational users.
 - Create another `ADMIN` using the system-defined default admin permission set.
-- Coordinate faculties and departments.
+- Coordinate departments.
 - Manage academic master data.
 - Manage courses/programs/sessions/semesters.
 - Publish notices and events.
@@ -271,7 +233,7 @@ University-wide operational administrator responsible for day-to-day administrat
 - Manage users except privileged `SUPER_ADMIN`, subject to the current admin's own permissions.
 - Create another `ADMIN`; the created admin receives `DEFAULT_ADMIN_PERMISSIONS`.
 - Manage students/instructors.
-- Manage faculties, departments, and academic structures.
+- Manage departments and academic structures.
 - Manage courses and schedules.
 - Review enrollment.
 - Publish university notices/events.
@@ -347,13 +309,13 @@ Deliver teaching and manage academic activities for assigned courses.
 
 ### Scope
 
-- Assigned course(s)/section(s).
-- Students enrolled in assigned section(s).
-- Section-level attendance and assessments.
+- Assigned course(s).
+- Students enrolled in assigned course(s).
+- Course-level attendance and assessments.
 
 ### Responsibilities
 
-- View assigned section rosters.
+- View assigned course rosters.
 - Record attendance.
 - Create/manage assignments.
 - Create/manage exams.
@@ -364,8 +326,8 @@ Deliver teaching and manage academic activities for assigned courses.
 
 ### Permissions
 
-- Read assigned courses/sections.
-- Read enrolled students for assigned sections.
+- Read assigned courses.
+- Read enrolled students for assigned courses.
 - Create/update attendance.
 - Create/update assignments.
 - Create/update exams.
@@ -405,7 +367,7 @@ Self-service access to academic, profile, enrollment and financial information.
 ### Responsibilities
 
 - Maintain permitted profile fields.
-- Request/enroll in a section.
+- Request/enroll in courses.
 - View schedule.
 - Submit assignments.
 - View attendance.
@@ -417,7 +379,7 @@ Self-service access to academic, profile, enrollment and financial information.
 ### Permissions
 
 - Read/update permitted profile fields.
-- Read available courses/sections.
+- Read available courses.
 - Create enrollment requests.
 - Read own enrollment.
 - Read own attendance.
@@ -472,7 +434,7 @@ Manage operational financial records while remaining isolated from academic auth
 - Verify payments.
 - Record financial transactions.
 - Generate financial reports.
-- Manage financial adjustments subject to approval rules (via `FinancialAdjustmentRequest`, see §14).
+- Manage financial adjustments subject to approval rules.
 - Read scholarship/payment information.
 - Export approved financial reports.
 
@@ -498,7 +460,7 @@ Manage operational financial records while remaining isolated from academic auth
 - **R** = Read
 - **O** = Own/self only
 - **D** = Department scope
-- **C** = Assigned course/section scope
+- **C** = Assigned course scope
 - **FIN** = Financial scope
 - **A** = Approve/review
 - **P** = Publish
@@ -508,35 +470,32 @@ The matrix describes the **default business capability** for each role. Every re
 
 For `ADMIN`, the matrix is only an upper-level role capability reference. The actual action is allowed only when the required resource permission is also present in that admin user's `permissions Permission[]` array. `SUPER_ADMIN` controls that admin permission array.
 
-| Resource          | SUPER\_ADMIN | ADMIN           | DEPARTMENT\_HEAD      | INSTRUCTOR      | STUDENT             | ACCOUNTANT       |
-| ----------------- | ------------ | --------------- | --------------------- | --------------- | -------------------- | ---------------- |
-| Users             | F            | M               | D/R                   | O               | O                    | Limited R        |
-| Faculties         | F            | M               | R                      | R               | R                    | R                 |
-| Students          | F            | M               | D/M                   | C/R             | O                    | FIN/R            |
-| Instructors       | F            | M               | D/M                   | O/R             | R (basic/public)    | —                |
-| Departments       | F            | M               | D/R                   | R               | R                    | R                |
-| Courses           | F            | M               | D/M                   | C/M             | R                    | R                |
-| Sections          | F            | M               | D/M                   | C/M             | R                    | —                 |
-| Subjects          | F            | M               | D/M                   | C/R             | R                    | R                |
-| Programs          | F            | M               | D/R                   | R               | R                    | —                |
-| Academic Sessions | F            | M               | D/R                   | R               | R                    | R                |
-| Semesters         | F            | M               | D/R                   | R               | R                    | R                |
-| Class Schedules   | F            | M               | D/M                   | C/M             | O/R                  | R                |
-| Enrollments       | F            | M/A             | D/A                   | C/R             | O/Create Request     | FIN-related R    |
-| Attendance        | F            | M/Override\*    | D/R/A                 | C/M             | O/R                  | —                |
-| Assignments       | F            | M               | D/R                   | C/M             | C/Submit             | —                |
-| Exams             | F            | M               | D/R/A                 | C/M             | C/R                  | —                |
-| Results           | F            | M\*             | D/A                   | C/Create Draft  | O/R after publish    | —                |
-| Grades            | F            | M\*             | D/A                   | C/Create/Update | O/R                  | —                |
-| Notices           | F/P          | M/P             | D/P                   | C/Create\*      | R                    | R                |
-| Events            | F/M/P        | M/P             | D/M/P                 | C/R             | R                    | R                |
-| Payments          | F/Oversight  | R/M\*           | R (limited)           | —               | O/Create             | FIN/M            |
-| Invoices          | F            | R/M\*           | R (limited)           | —               | O/R                  | FIN/M            |
-| Scholarships      | F            | M               | D/R/Recommend         | —               | O/Request             | FIN/M            |
-| Financial Adjustments | F        | A (approver)    | —                      | —               | —                     | FIN/Create        |
-| Financial Reports | F            | R/Generate      | D/R                   | —               | —                     | FIN/Generate     |
-| System Settings   | F            | Limited         | —                      | —               | —                     | —                 |
-| Audit Logs        | F/R          | R (operational) | R (department events) | Own action logs | Own security events   | Financial events |
+| Resource | SUPER_ADMIN | ADMIN | DEPARTMENT_HEAD | INSTRUCTOR | STUDENT | ACCOUNTANT |
+|---|---|---|---|---|---|---|
+| Users | F | M | D/R | O | O | Limited R |
+| Students | F | M | D/M | C/R | O | FIN/R |
+| Instructors | F | M | D/M | O/R | R (basic/public) | — |
+| Departments | F | M | D/R | R | R | R |
+| Courses | F | M | D/M | C/M | R | R |
+| Subjects | F | M | D/M | C/R | R | R |
+| Programs | F | M | D/R | R | R | — |
+| Academic Sessions | F | M | D/R | R | R | R |
+| Semesters | F | M | D/R | R | R | R |
+| Class Schedules | F | M | D/M | C/M | O/R | R |
+| Enrollments | F | M/A | D/A | C/R | O/Create Request | FIN-related R |
+| Attendance | F | M/Override* | D/R/A | C/M | O/R | — |
+| Assignments | F | M | D/R | C/M | C/Submit | — |
+| Exams | F | M | D/R/A | C/M | C/R | — |
+| Results | F | M* | D/A | C/Create Draft | O/R after publish | — |
+| Grades | F | M* | D/A | C/Create/Update | O/R | — |
+| Notices | F/P | M/P | D/P | C/Create* | R | R |
+| Events | F/M/P | M/P | D/M/P | C/R | R | R |
+| Payments | F/Oversight | R/M* | R (limited) | — | O/Create | FIN/M |
+| Invoices | F | R/M* | R (limited) | — | O/R | FIN/M |
+| Scholarships | F | M | D/R/Recommend | — | O/Request | FIN/M |
+| Financial Reports | F | R/Generate | D/R | — | — | FIN/Generate |
+| System Settings | F | Limited | — | — | — | — |
+| Audit Logs | F/R | R (operational) | R (department events) | Own action logs | Own security events | Financial events |
 
 `*` = should be controlled by explicit workflow/approval policy rather than unrestricted modification.
 
@@ -548,7 +507,7 @@ CRUD is not sufficient for UMS. Business actions should be modeled separately.
 
 ## 4.1 Core Actions
 
-```
+```text
 CREATE
 READ
 UPDATE
@@ -570,23 +529,23 @@ REQUEST
 
 ## 4.2 Recommended Role Action Profile
 
-| Action           | SUPER\_ADMIN | ADMIN   | DEPARTMENT\_HEAD      | INSTRUCTOR     | STUDENT       | ACCOUNTANT                      |
-| ---------------- | ------------ | ------- | ---------------------- | -------------- | ------------- | -------------------------------- |
-| CREATE           | ✓            | ✓       | ✓ scoped               | ✓ scoped       | Limited/self  | ✓ financial                      |
-| READ             | ✓            | ✓       | ✓ scoped               | ✓ scoped       | Own/public    | ✓ financial                      |
-| UPDATE           | ✓            | ✓       | ✓ scoped               | ✓ scoped       | Own permitted | ✓ financial                      |
-| DELETE           | ✓            | Scoped  | Limited                | Limited        | —             | Limited                          |
-| APPROVE          | ✓            | ✓       | ✓ academic             | —              | —             | ✓ financial                      |
-| REJECT           | ✓            | ✓       | ✓ academic             | Limited        | —             | ✓ financial                      |
-| ASSIGN           | ✓            | ✓       | ✓ department           | —              | —             | —                                 |
-| PUBLISH          | ✓            | ✓       | ✓ department           | Course-limited | —             | Financial reports if authorized  |
-| ARCHIVE          | ✓            | ✓       | Scoped                  | Course-limited | —             | Financial records per policy     |
-| SUSPEND          | ✓            | ✓ users | Scoped recommendation  | —              | —             | —                                 |
-| RESTORE          | ✓            | ✓       | Scoped                  | —              | —             | —                                 |
-| EXPORT           | ✓            | ✓       | Department              | Course         | Own permitted | Financial                         |
-| GENERATE\_REPORT | ✓            | ✓       | Department              | Course         | Own           | Financial                         |
-| SUBMIT           | ✓            | ✓       | ✓                       | ✓              | ✓ applicable  | ✓ financial                      |
-| VERIFY           | ✓            | Limited | —                       | —              | —             | ✓ payments                       |
+| Action | SUPER_ADMIN | ADMIN | DEPARTMENT_HEAD | INSTRUCTOR | STUDENT | ACCOUNTANT |
+|---|---:|---:|---:|---:|---:|---:|
+| CREATE | ✓ | ✓ | ✓ scoped | ✓ scoped | Limited/self | ✓ financial |
+| READ | ✓ | ✓ | ✓ scoped | ✓ scoped | Own/public | ✓ financial |
+| UPDATE | ✓ | ✓ | ✓ scoped | ✓ scoped | Own permitted | ✓ financial |
+| DELETE | ✓ | Scoped | Limited | Limited | — | Limited |
+| APPROVE | ✓ | ✓ | ✓ academic | — | — | ✓ financial |
+| REJECT | ✓ | ✓ | ✓ academic | Limited | — | ✓ financial |
+| ASSIGN | ✓ | ✓ | ✓ department | — | — | — |
+| PUBLISH | ✓ | ✓ | ✓ department | Course-limited | — | Financial reports if authorized |
+| ARCHIVE | ✓ | ✓ | Scoped | Course-limited | — | Financial records per policy |
+| SUSPEND | ✓ | ✓ users | Scoped recommendation | — | — | — |
+| RESTORE | ✓ | ✓ | Scoped | — | — | — |
+| EXPORT | ✓ | ✓ | Department | Course | Own permitted | Financial |
+| GENERATE_REPORT | ✓ | ✓ | Department | Course | Own | Financial |
+| SUBMIT | ✓ | ✓ | ✓ | ✓ | ✓ applicable | ✓ financial |
+| VERIFY | ✓ | Limited | — | — | — | ✓ payments |
 
 ---
 
@@ -594,10 +553,10 @@ REQUEST
 
 ## 5.1 Enrollment
 
-```
+```text
 STUDENT
    │
-   ├── Select available section (a course offered in a specific semester)
+   ├── Select available course
    │
    ├── Submit enrollment request
    ▼
@@ -620,19 +579,19 @@ STUDENT + INSTRUCTOR notified
 ### Security rules
 
 - Student can create a request but cannot approve it.
-- Department Head can approve within department (the section's course must belong to their department).
+- Department Head can approve within department.
 - Admin can handle university-level exceptions.
-- Instructor can see enrollment only for assigned sections.
-- The backend must validate department/section ownership.
+- Instructor can see enrollment only for assigned courses.
+- The backend must validate department/course ownership.
 
 ---
 
 ## 5.2 Result Submission
 
-```
+```text
 INSTRUCTOR
    │
-   ├── Select assigned section
+   ├── Select assigned course
    ├── Enter grades
    └── Submit results
    │
@@ -664,7 +623,7 @@ DEPARTMENT_HEAD
 
 ## 5.3 Payment
 
-```
+```text
 STUDENT
    │
    ├── View invoice
@@ -691,7 +650,7 @@ Payment Confirmed
 - Never trust payment amount/status supplied by the client.
 - Payment confirmation should use verified gateway/webhook data.
 - Accountant cannot alter immutable gateway evidence.
-- Refunds/adjustments should use the `FinancialAdjustmentRequest` approval workflow (§14).
+- Refunds/adjustments should use a separate approval workflow.
 - Financial operations must be fully audited.
 
 ---
@@ -702,7 +661,7 @@ RBAC answers **what** a user can do. Scope answers **which records** they can do
 
 Recommended authorization formula:
 
-```
+```text
 ALLOW =
     authenticated
     AND role_rule_allows_action
@@ -713,70 +672,61 @@ ALLOW =
 
 ## 6.1 Scope Matrix
 
-| Role              | Read Scope                                          | Write Scope                         | Update Scope                      | Delete Scope                                |
-| ----------------- | ---------------------------------------------------- | ------------------------------------ | ---------------------------------- | -------------------------------------------- |
-| `SUPER_ADMIN`     | Entire system                                        | Global resources                     | Global resources                   | Only explicitly deletable resources          |
-| `ADMIN`           | University administrative data                       | University operational data          | University operational data        | Scoped operational resources                 |
-| `DEPARTMENT_HEAD` | Own department                                       | Own department                       | Own department                     | Department resources where permitted         |
-| `INSTRUCTOR`      | Assigned sections/students                            | Assigned section activities          | Assigned section activities        | Own drafts/course content                    |
-| `STUDENT`         | Own + public                                          | Own permitted self-service actions   | Own permitted fields/submissions   | Own cancellable requests                     |
-| `ACCOUNTANT`      | Financial + minimum required student billing data     | Financial resources                  | Financial resources                | Only explicitly deletable financial drafts   |
+| Role | Read Scope | Write Scope | Update Scope | Delete Scope |
+|---|---|---|---|---|
+| `SUPER_ADMIN` | Entire system | Global resources | Global resources | Only explicitly deletable resources |
+| `ADMIN` | University administrative data | University operational data | University operational data | Scoped operational resources |
+| `DEPARTMENT_HEAD` | Own department | Own department | Own department | Department resources where permitted |
+| `INSTRUCTOR` | Assigned courses/students | Assigned course activities | Assigned course activities | Own drafts/course content |
+| `STUDENT` | Own + public | Own permitted self-service actions | Own permitted fields/submissions | Own cancellable requests |
+| `ACCOUNTANT` | Financial + minimum required student billing data | Financial resources | Financial resources | Only explicitly deletable financial drafts |
 
 ## 6.2 Department Isolation
 
 A Department Head request should be evaluated like:
 
-```
+```text
 user.departmentId === resource.departmentId
 ```
 
-(where `resource.departmentId` is resolved through `Section → Course →
-Department` for section-level resources, since `Section` itself has no
-direct `departmentId` column)
-
 Do not rely only on:
 
-```
+```text
 role === "DEPARTMENT_HEAD"
 ```
 
-## 6.3 Course/Section Isolation
+## 6.3 Course Isolation
 
-Instructor access should additionally validate assignment through the
-`CourseInstructor` join table:
+Instructor access should additionally validate assignment:
 
-```
-CourseInstructor.instructorId === currentUser.id
-AND CourseInstructor.courseId === section.courseId
+```text
+CourseInstructor.userId === currentUser.id
+AND CourseInstructor.courseId === requestedCourseId
 ```
 
 This prevents:
 
-```
+```text
 Instructor A → Course B ❌
 Instructor A → Course A ✓
 ```
-
-`instructorId` is the real field name on `CourseInstructor` — not
-`userId`.
 
 ## 6.4 Student Isolation
 
 Student access should normally require:
 
-```
-resource.studentId === currentUser.studentProfile.id
+```text
+resource.studentId === currentUser.studentId
 ```
 
 This applies to:
-
 - profile;
-- enrollment (via `Section`);
 - attendance;
 - grades;
 - results;
 - invoices;
-- payment history.
+- payment history;
+- enrollment records.
 
 ---
 
@@ -830,7 +780,7 @@ Student data should be classified and minimized.
 
 ## 8.1 Authentication & Authorization
 
-```
+```mermaid
 flowchart TD
     A[Login] --> B[Validate Credentials]
     B --> C{Authenticated?}
@@ -849,14 +799,14 @@ flowchart TD
 
 ## 8.2 Permission Relationship
 
-```
+```mermaid
 flowchart LR
     U[User] --> R[Single Role]
     U --> P[Permission Array]
     P --> RA[Resource + Action Permissions]
     R --> RR[Role Rules]
     U --> S[Scope Context]
-    S --> C[Faculty / Department / Course / Self / Financial]
+    S --> C[Department / Course / Self / Financial]
     RR --> A[Authorization Decision]
     RA --> A
     C --> A
@@ -864,21 +814,21 @@ flowchart LR
 
 ## 8.3 Role Access Relationship
 
-```
+```mermaid
 flowchart TD
     SA[SUPER_ADMIN] -->|Global Control| SYS[System]
     AD[ADMIN] -->|University Operations| UNI[University Resources]
     DH[DEPARTMENT_HEAD] -->|Department Scope| DEP[Department Resources]
-    IN[INSTRUCTOR] -->|Assigned Section Scope| CRS[Section Resources]
+    IN[INSTRUCTOR] -->|Assigned Course Scope| CRS[Course Resources]
     ST[STUDENT] -->|Self Service| OWN[Own Resources]
     AC[ACCOUNTANT] -->|Financial Scope| FIN[Financial Resources]
 
     SA --> UNI
     AD --> DEP
     AD --> FIN
-    AD --> OWN
     DH --> CRS
     CRS --> OWN
+    FIN --> OWN
 ```
 
 ---
@@ -889,7 +839,7 @@ flowchart TD
 
 Do **not** build authorization as:
 
-```
+```ts
 if (user.role === "ADMIN") {
   // allow
 }
@@ -897,7 +847,7 @@ if (user.role === "ADMIN") {
 
 Prefer:
 
-```
+```text
 Authentication
       ↓
 User Identity
@@ -919,16 +869,15 @@ ALLOW / DENY
 
 ## 9.2 Permission Naming Convention
 
-Recommended (as a documentation convention; the actual `Permission` enum
-in §11 uses `RESOURCE_ACTION` casing to match Prisma enum conventions):
+Recommended:
 
-```
+```text
 <resource>:<action>
 ```
 
 Examples:
 
-```
+```text
 users:read
 users:create
 users:update
@@ -978,7 +927,7 @@ system_settings:manage
 
 Permissions are stored directly on the `User` record:
 
-```
+```text
 User
  ├── role
  └── permissions[]
@@ -987,15 +936,15 @@ User
 
 Example admin:
 
-```
+```text
 ADMIN
- ├── USER_READ
- ├── USER_CREATE
- ├── STUDENT_READ
- ├── STUDENT_UPDATE
- ├── COURSE_READ
- ├── COURSE_UPDATE
- └── NOTICE_PUBLISH
+ ├── users:read
+ ├── users:create
+ ├── students:read
+ ├── students:update
+ ├── courses:read
+ ├── courses:update
+ └── notices:publish
 ```
 
 The presence of `ADMIN` in the `role` field does not automatically grant every admin capability. The backend must check the required permission in `user.permissions`.
@@ -1004,7 +953,7 @@ The presence of `ADMIN` in the `role` field does not automatically grant every a
 
 A user must have exactly one role:
 
-```
+```text
 User
   └── role: Role
 ```
@@ -1013,7 +962,7 @@ Do not use `UserRole` or any many-to-many user-role table for this design.
 
 Examples:
 
-```
+```text
 User A → ADMIN
 User B → INSTRUCTOR
 User C → STUDENT
@@ -1021,7 +970,7 @@ User C → STUDENT
 
 Invalid:
 
-```
+```text
 User A → ADMIN + ACCOUNTANT  ❌
 User B → INSTRUCTOR + DEPARTMENT_HEAD  ❌
 ```
@@ -1034,23 +983,17 @@ If a person's responsibility changes, update the single `role` value through an 
 
 ## 10.1 Core Entities
 
-```
+```text
 User
-SuperAdminProfile
-AdminProfile
-DepartmentHeadProfile
-InstructorProfile
-StudentProfile
-AccountantProfile
-Faculty
 Department
 Program
 Subject
 Course
 CourseInstructor
+Student
+Instructor
 AcademicSession
 Semester
-Section
 ClassSchedule
 StudentEnrollment
 Attendance
@@ -1063,7 +1006,6 @@ Invoice
 Payment
 Scholarship
 FinancialTransaction
-FinancialAdjustmentRequest
 Notice
 Event
 AuditLog
@@ -1074,30 +1016,25 @@ There is **no `UserRole` join table** and no `RolePermission` join table in this
 
 `Role` and `Permission` are represented as Prisma enums and stored directly in `User`:
 
-```
+```text
 User
  ├── role: Role
  └── permissions: Permission[]
 ```
 
-Role-specific data is never stored on `User` itself — it lives in the six
-`*Profile` tables above, each a strict 1-to-1 extension keyed by `userId`.
-
 ## 10.2 Conceptual Relationship
 
-```
+```mermaid
 erDiagram
-    FACULTY ||--o{ DEPARTMENT : contains
     DEPARTMENT ||--o{ USER : contains
     DEPARTMENT ||--o{ COURSE : owns
-    COURSE ||--o{ SECTION : "offered as"
     COURSE ||--o{ COURSE_INSTRUCTOR : has
     USER ||--o{ COURSE_INSTRUCTOR : teaches
 
-    STUDENT_PROFILE ||--o{ STUDENT_ENROLLMENT : creates
-    SECTION ||--o{ STUDENT_ENROLLMENT : receives
+    STUDENT ||--o{ STUDENT_ENROLLMENT : creates
+    COURSE ||--o{ STUDENT_ENROLLMENT : receives
 
-    STUDENT_PROFILE ||--o{ INVOICE : billed
+    STUDENT ||--o{ INVOICE : billed
     INVOICE ||--o{ PAYMENT : receives
 ```
 
@@ -1122,7 +1059,7 @@ The `role` and `permissions` fields are attributes of `USER`, not separate many-
 
 ### Other Roles
 
-`DEPARTMENT_HEAD`, `INSTRUCTOR`, `STUDENT`, and `ACCOUNTANT` receive their application-defined default permission arrays. Their data access remains restricted by department, assigned course/section, self, or financial scope.
+`DEPARTMENT_HEAD`, `INSTRUCTOR`, `STUDENT`, and `ACCOUNTANT` receive their application-defined default permission arrays. Their data access remains restricted by department, assigned course, self, or financial scope.
 
 ## 10.4 Scope Is Still Relational
 
@@ -1130,34 +1067,32 @@ Permissions answer **what action** is permitted. Domain relationships determine 
 
 Example:
 
-```
+```text
 User:
   role = INSTRUCTOR
   permissions = [COURSE_READ, ATTENDANCE_CREATE, RESULT_SUBMIT]
 
 CourseInstructor:
-  instructorId → (assigned to course CSE-301)
-  instructorId → (assigned to course CSE-401)
+  instructorId → CSE-301
+  instructorId → CSE-401
 ```
 
 Therefore:
 
-```
+```text
 RESULT_SUBMIT permission
 + INSTRUCTOR role rule
-+ CourseInstructor.instructorId relation
-= submission allowed only for assigned courses/sections
++ CourseInstructor relation
+= submission allowed only for assigned courses
 ```
 
 ---
 
 # 11. Prisma Conceptual Example
 
-The schema keeps the user's single role and all granted permissions
-directly in the `User` table, matching `prisma/schema/01-auth-users.prisma`
-and `enums.prisma`.
+The schema should keep the user's single role and all granted permissions directly in the `User` table.
 
-```
+```prisma
 enum Role {
   SUPER_ADMIN
   ADMIN
@@ -1168,45 +1103,38 @@ enum Role {
 }
 
 enum Permission {
-  // Users
   USER_READ
   USER_CREATE
   USER_UPDATE
   USER_SUSPEND
   USER_RESTORE
 
-  // Students
   STUDENT_READ
   STUDENT_CREATE
   STUDENT_UPDATE
 
-  // Instructors
   INSTRUCTOR_READ
   INSTRUCTOR_CREATE
   INSTRUCTOR_UPDATE
 
-  // Organization
   DEPARTMENT_READ
   DEPARTMENT_CREATE
   DEPARTMENT_UPDATE
-  FACULTY_READ
-  FACULTY_CREATE
-  FACULTY_UPDATE
-  PROGRAM_READ
-  PROGRAM_CREATE
-  PROGRAM_UPDATE
 
-  // Academic catalog
-  SUBJECT_READ
-  SUBJECT_CREATE
-  SUBJECT_UPDATE
   COURSE_READ
   COURSE_CREATE
   COURSE_UPDATE
   COURSE_DELETE
   COURSE_ASSIGN_INSTRUCTOR
 
-  // Academic delivery
+  SUBJECT_READ
+  SUBJECT_CREATE
+  SUBJECT_UPDATE
+
+  PROGRAM_READ
+  PROGRAM_CREATE
+  PROGRAM_UPDATE
+
   ACADEMIC_SESSION_READ
   ACADEMIC_SESSION_MANAGE
   SEMESTER_READ
@@ -1214,22 +1142,25 @@ enum Permission {
   CLASS_SCHEDULE_READ
   CLASS_SCHEDULE_MANAGE
 
-  // Student academics
   ENROLLMENT_READ
   ENROLLMENT_CREATE
   ENROLLMENT_APPROVE
   ENROLLMENT_REJECT
+
   ATTENDANCE_READ
   ATTENDANCE_CREATE
   ATTENDANCE_UPDATE
+
   ASSIGNMENT_READ
   ASSIGNMENT_CREATE
   ASSIGNMENT_UPDATE
   ASSIGNMENT_SUBMIT
   ASSIGNMENT_GRADE
+
   EXAM_READ
   EXAM_CREATE
   EXAM_UPDATE
+
   RESULT_READ
   RESULT_CREATE
   RESULT_UPDATE
@@ -1238,76 +1169,63 @@ enum Permission {
   RESULT_REJECT
   RESULT_PUBLISH
 
-  // Communication
   NOTICE_READ
   NOTICE_CREATE
   NOTICE_UPDATE
   NOTICE_PUBLISH
+
   EVENT_READ
   EVENT_CREATE
   EVENT_UPDATE
   EVENT_PUBLISH
 
-  // Finance
   PAYMENT_READ
   PAYMENT_CREATE
   PAYMENT_VERIFY
   PAYMENT_RECONCILE
+
   INVOICE_READ
   INVOICE_CREATE
   INVOICE_UPDATE
+
   SCHOLARSHIP_READ
   SCHOLARSHIP_CREATE
   SCHOLARSHIP_UPDATE
   SCHOLARSHIP_APPROVE
+
   FINANCIAL_REPORT_READ
   FINANCIAL_REPORT_GENERATE
   FINANCIAL_REPORT_EXPORT
 
-  // System / RBAC governance
   SYSTEM_SETTING_READ
   SYSTEM_SETTING_MANAGE
   AUDIT_LOG_READ
+
   ADMIN_PERMISSION_READ
   ADMIN_PERMISSION_UPDATE
 }
 
 model User {
-  id           String       @id @default(uuid())
-  name         String
+  id           String       @id @default(cuid())
   email        String       @unique
-  password     String?
+  passwordHash String?
 
-  role         Role         @default(STUDENT)
+  role         Role
   permissions  Permission[]
 
   isActive     Boolean      @default(true)
-  facultyId    String?
   departmentId String?
 
-  faculty      Faculty?     @relation(fields: [facultyId], references: [id])
   department   Department?  @relation(fields: [departmentId], references: [id])
 
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 }
 
-model Faculty {
-  id         String @id @default(uuid())
-  code       String @unique
-  name       String
-  deanUserId String?
-
-  departments Department[]
-  users       User[]
-}
-
 model Department {
-  id        String @id @default(uuid())
-  facultyId String
-  name      String @unique
+  id      String @id @default(cuid())
+  name    String @unique
 
-  faculty Faculty  @relation(fields: [facultyId], references: [id])
   users   User[]
   courses Course[]
 }
@@ -1326,7 +1244,7 @@ Keep default permission sets in trusted backend code or controlled configuration
 
 Conceptual example:
 
-```
+```ts
 const DEFAULT_ADMIN_PERMISSIONS: Permission[] = [
   Permission.USER_READ,
   Permission.USER_CREATE,
@@ -1336,7 +1254,6 @@ const DEFAULT_ADMIN_PERMISSIONS: Permission[] = [
   Permission.INSTRUCTOR_READ,
   Permission.COURSE_READ,
   Permission.DEPARTMENT_READ,
-  Permission.FACULTY_READ,
   Permission.NOTICE_READ,
   Permission.NOTICE_CREATE,
 ];
@@ -1344,7 +1261,7 @@ const DEFAULT_ADMIN_PERMISSIONS: Permission[] = [
 
 When an `ADMIN` creates another admin:
 
-```
+```ts
 await prisma.user.create({
   data: {
     email,
@@ -1358,13 +1275,13 @@ The request body must **not** be trusted to provide arbitrary admin permissions.
 
 Bad:
 
-```
+```ts
 permissions: req.body.permissions
 ```
 
 Preferred:
 
-```
+```ts
 permissions: DEFAULT_ADMIN_PERMISSIONS
 ```
 
@@ -1372,7 +1289,7 @@ permissions: DEFAULT_ADMIN_PERMISSIONS
 
 Only `SUPER_ADMIN` can customize an admin's resource permissions:
 
-```
+```ts
 await prisma.user.update({
   where: { id: adminId },
   data: {
@@ -1387,7 +1304,7 @@ Before updating, verify that the target user's role is `ADMIN` and validate ever
 
 Because `role` is a single enum field:
 
-```
+```prisma
 role Role
 ```
 
@@ -1399,7 +1316,7 @@ the schema naturally prevents a user from holding multiple roles simultaneously.
 
 ## 12.1 Recommended Layers
 
-```
+```text
 HTTP Request
      ↓
 Authentication Middleware
@@ -1423,17 +1340,14 @@ Database
 Audit Event
 ```
 
-This maps directly onto the implemented middleware chain in
-`MODULAR_ARCHITECTURE_GUIDE.md` §6–7: `authenticate` →
-`requirePermission` → `requireScope` → `validate` → controller → service
-→ repository → Prisma.
-
 ## 12.2 Authentication ≠ Authorization
 
 Authentication answers:
+
 > Who are you?
 
 Authorization answers:
+
 > Are you allowed to perform this action on this resource?
 
 Never treat a valid JWT as proof that the requested operation is authorized.
@@ -1442,7 +1356,7 @@ Never treat a valid JWT as proof that the requested operation is authorized.
 
 Frontend permission checks are for UX only:
 
-```
+```text
 Frontend:
 hide "Delete" button
         ↓
@@ -1456,15 +1370,9 @@ A malicious user can call the API directly using Postman/curl/browser tools.
 
 # 13. API Authorization Examples
 
-> These are **conceptual** role-vs-endpoint examples. The authoritative,
-> finalized endpoint list — actual paths, permissions, request/response
-> shapes, and restriction IDs (R-1..R-10) — is `docs/API_INSTRUCTION.md`.
-> Where a path shown here differs stylistically from that document (e.g.
-> nesting vs. flat routes), `API_INSTRUCTION.md` wins.
-
 ## 13.1 Student APIs
 
-```
+```text
 GET    /api/students
 POST   /api/students
 GET    /api/students/:id
@@ -1474,17 +1382,17 @@ DELETE /api/students/:id
 
 Recommended policy:
 
-| Endpoint               | SUPER\_ADMIN | ADMIN  | DEPARTMENT\_HEAD | INSTRUCTOR                 | STUDENT                    | ACCOUNTANT        |
-| ----------------------- | ------------ | ------ | ----------------- | --------------------------- | --------------------------- | ------------------ |
-| `GET /students`        | ALLOW        | ALLOW  | Department         | Enrolled-section students   | DENY                        | Financial-limited  |
-| `POST /students`       | ALLOW        | ALLOW  | Limited            | DENY                        | Self-registration workflow  | DENY               |
-| `GET /students/:id`    | ALLOW        | ALLOW  | Own dept           | Enrolled student            | Own only                    | Billing-only DTO   |
-| `PATCH /students/:id`  | ALLOW        | ALLOW  | Limited            | DENY                        | Own permitted fields        | DENY               |
-| `DELETE /students/:id` | ALLOW        | Scoped | DENY               | DENY                        | DENY                        | DENY               |
+| Endpoint | SUPER_ADMIN | ADMIN | DEPARTMENT_HEAD | INSTRUCTOR | STUDENT | ACCOUNTANT |
+|---|---|---|---|---|---|---|
+| `GET /students` | ALLOW | ALLOW | Department | Assigned-course students | DENY | Financial-limited |
+| `POST /students` | ALLOW | ALLOW | Limited | DENY | Self-registration workflow | DENY |
+| `GET /students/:id` | ALLOW | ALLOW | Own dept | Assigned student | Own only | Billing-only DTO |
+| `PATCH /students/:id` | ALLOW | ALLOW | Limited | DENY | Own permitted fields | DENY |
+| `DELETE /students/:id` | ALLOW | Scoped | DENY | DENY | DENY | DENY |
 
 ## 13.2 Course APIs
 
-```
+```text
 GET    /api/courses
 POST   /api/courses
 PATCH  /api/courses/:id
@@ -1494,7 +1402,7 @@ POST   /api/courses/:id/instructors
 
 Policy:
 
-```
+```text
 SUPER_ADMIN       → Full
 ADMIN             → University operational scope
 DEPARTMENT_HEAD   → Own department
@@ -1505,20 +1413,21 @@ ACCOUNTANT        → Read basic course data only
 
 ## 13.3 Result APIs
 
-```
-POST   /api/results
+```text
+POST   /api/courses/:courseId/results
+PATCH  /api/results/:id
 POST   /api/results/:id/submit
 POST   /api/results/:id/approve
 POST   /api/results/:id/reject
 POST   /api/results/:id/publish
-GET    /api/results/me
+GET    /api/students/:studentId/results
 ```
 
 Policy:
 
-```
+```text
 INSTRUCTOR
-    → create/update draft for an assigned section
+    → create/update draft for assigned course
     → submit
 
 DEPARTMENT_HEAD
@@ -1526,13 +1435,13 @@ DEPARTMENT_HEAD
     → approve/reject
 
 ADMIN
-    → operational oversight / exceptional workflow, publish
+    → operational oversight / exceptional workflow
 
 SUPER_ADMIN
     → global oversight
 
 STUDENT
-    → read own published results only
+    → read own published results
 
 ACCOUNTANT
     → no academic result access by default
@@ -1540,16 +1449,17 @@ ACCOUNTANT
 
 ## 13.4 Payment APIs
 
-```
+```text
 GET    /api/invoices
 POST   /api/payments
 GET    /api/payments/:id
 POST   /api/payments/:id/verify
+POST   /api/payments/:id/reconcile
 ```
 
 Policy:
 
-```
+```text
 STUDENT
     → own invoice
     → initiate own payment
@@ -1569,7 +1479,7 @@ INSTRUCTOR
     → no access
 
 DEPARTMENT_HEAD
-    → no access
+    → limited financial visibility if required
 ```
 
 ---
@@ -1582,7 +1492,7 @@ A production UMS should avoid allowing one person to complete an entire sensitiv
 
 ### Result
 
-```
+```text
 INSTRUCTOR
   Submit Result
       ↓
@@ -1595,7 +1505,7 @@ System / Authorized Publisher
 
 ### Payment
 
-```
+```text
 STUDENT
   Initiate Payment
       ↓
@@ -1608,50 +1518,20 @@ ACCOUNTANT
 
 ### Sensitive financial adjustment
 
-Backed by a real `FinancialAdjustmentRequest` entity (Unit 7):
-
-```
-model FinancialAdjustmentRequest {
-  id            String                    @id @default(uuid())
-  studentId     String
-  requestedById String
-  amount        Decimal                   @db.Decimal(12, 2)
-  reason        String
-  status        FinancialAdjustmentStatus @default(PENDING)
-  approvedById  String?
-  approvedAt    DateTime?
-  transactionId String?                   @unique
-}
-
-enum FinancialAdjustmentStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-```
-
-```
+```text
 ACCOUNTANT
-  POST /financial-adjustments
-  Creates FinancialAdjustmentRequest { status: PENDING, requestedById: caller }
+  Create Adjustment Request
       ↓
 ADMIN / Authorized Approver
-  POST /financial-adjustments/:id/approve
-  status → APPROVED, approvedById/approvedAt set
+  Approve
       ↓
 System
-  Creates the resulting FinancialTransaction (type = ADJUSTMENT)
-  and links it back via FinancialAdjustmentRequest.transactionId
+  Apply Adjustment
 ```
-
-**Separation of duties rule:** the accountant who creates a
-`FinancialAdjustmentRequest` (`requestedById`) can never be the same user
-who approves it (`approvedById`) — the same pattern used for `Result`
-(§5.2), enforced the same way in the service layer.
 
 ### Privileged role and admin-permission management
 
-```
+```text
 SUPER_ADMIN
   ├── Assign / change privileged role
   └── Grant / revoke ADMIN resource permissions
@@ -1659,7 +1539,7 @@ SUPER_ADMIN
        Audit Log
 ```
 
-```
+```text
 ADMIN
   Create another ADMIN
       ↓
@@ -1682,38 +1562,38 @@ Grant the smallest permission set needed.
 
 Examples:
 
-```
+```text
 ACCOUNTANT:
-PAYMENT_VERIFY ✓
-RESULT_UPDATE  ✗
+payments:verify ✓
+grades:update   ✗
 
 INSTRUCTOR:
-ATTENDANCE_UPDATE ✓
-PAYMENT_CREATE    ✗
+attendance:update ✓
+payments:update   ✗
 
 STUDENT:
-RESULT_READ   ✓
-RESULT_UPDATE ✗
+results:read ✓
+results:update ✗
 ```
 
 ## 15.2 Deny by Default
 
 If no permission exists:
 
-```
+```text
 DENY
 ```
 
 Do not implement:
 
-```
+```text
 if role is not explicitly denied:
     ALLOW
 ```
 
 Prefer:
 
-```
+```text
 if explicit permission
 AND scope matches
 AND resource state allows action:
@@ -1726,9 +1606,7 @@ else:
 
 Only `SUPER_ADMIN` should manage privileged role policy and customize `ADMIN` resource permissions by default.
 
-Recommended (matches `SuperAdminProfile.mfaEnabled` / `ipWhitelist` /
-`lastPrivilegedActionAt`):
-
+Recommended:
 - MFA;
 - audit logs;
 - rate limiting;
@@ -1739,45 +1617,28 @@ Recommended (matches `SuperAdminProfile.mfaEnabled` / `ipWhitelist` /
 
 ## 15.4 Auditability
 
-Log security-sensitive actions using the implemented `AuditAction` enum:
+Log security-sensitive actions such as:
 
-```
-USER_CREATED
-USER_UPDATED
-ROLE_CHANGED
-PERMISSION_CHANGED
+```text
+ROLE_ASSIGNED
+ROLE_REVOKED
 USER_SUSPENDED
 USER_RESTORED
-
+PERMISSION_CHANGED
 GRADE_SUBMITTED
 GRADE_APPROVED
 GRADE_REJECTED
 RESULT_PUBLISHED
-
-PAYMENT_CREATED
 PAYMENT_VERIFIED
 PAYMENT_RECONCILED
-
-INVOICE_CREATED
 INVOICE_ADJUSTED
 SCHOLARSHIP_APPROVED
-
 SYSTEM_SETTING_CHANGED
-
-LOGIN_SUCCESS
-LOGIN_FAILED
-PASSWORD_CHANGED
-PASSWORD_RESET
 ```
-
-This is the same list documented in `DATABASE_SCHEMA_README.md` Unit 9
-and `API_INSTRUCTION.md` §9, with one deliberate simplification: a single
-`ROLE_CHANGED` action (old/new role captured in `metadata`) rather than
-separate `ROLE_ASSIGNED`/`ROLE_REVOKED` values (see Changelog #8).
 
 An audit record should conceptually include:
 
-```
+```text
 actorId
 action
 resourceType
@@ -1800,31 +1661,29 @@ Frontend authorization should improve usability, not provide security.
 
 Example:
 
-```
-if (can("RESULT_APPROVE")) {
+```ts
+if (can("results:approve")) {
   showApproveButton();
 }
 ```
 
 But the API must independently enforce:
 
-```
+```text
 POST /api/results/:id/approve
 ```
 
 The frontend may hide:
-
 - navigation items;
 - buttons;
 - actions;
 - dashboards.
 
 The backend must enforce:
-
 - endpoint access;
 - object ownership;
 - department scope;
-- course/section assignment;
+- course assignment;
 - state transitions;
 - business rules.
 
@@ -1834,20 +1693,20 @@ The backend must enforce:
 
 A conceptual backend API:
 
-```
+```ts
 authorize({
   user,
-  permission: "RESULT_APPROVE",
+  permission: "results:approve",
   resource: result,
   scope: {
-    departmentId: result.section.course.departmentId,
+    departmentId: result.departmentId,
   },
 });
 ```
 
 Evaluation:
 
-```
+```text
 1. Is the user authenticated?
 2. Is the account active?
 3. Does the user have the permission?
@@ -1866,7 +1725,7 @@ Permission alone is sometimes insufficient.
 
 Example:
 
-```
+```text
 DRAFT
   ↓
 SUBMITTED
@@ -1878,7 +1737,7 @@ PUBLISHED
 
 Rules:
 
-```
+```text
 INSTRUCTOR:
 DRAFT → SUBMITTED
 
@@ -1894,13 +1753,13 @@ READ PUBLISHED
 
 Do not allow:
 
-```
+```text
 STUDENT → PUBLISHED
 ```
 
 or:
 
-```
+```text
 INSTRUCTOR → APPROVED
 ```
 
@@ -1910,41 +1769,40 @@ unless the business workflow explicitly permits it.
 
 # 19. Recommended API Guard Pattern
 
-Using the actual middleware from `MODULAR_ARCHITECTURE_GUIDE.md` §7
-(`requirePermission`, `requireScope`) rather than one-off-per-check
-function names:
+Conceptual Express-style pattern:
 
-```
+```ts
 router.post(
   "/results/:id/approve",
   authenticate,
-  requirePermission(Permission.RESULT_APPROVE),
-  requireScope(departmentScopeForSection),
-  resultsController.approve
+  requirePermission("results:approve"),
+  requireDepartmentScope(),
+  requireResultState("SUBMITTED"),
+  resultController.approve
 );
 ```
 
 For an instructor:
 
-```
+```ts
 router.post(
-  "/results",
+  "/courses/:courseId/results",
   authenticate,
-  requirePermission(Permission.RESULT_CREATE),
-  requireScope(courseInstructorScope),
-  resultsController.create
+  requirePermission("results:create"),
+  requireCourseInstructorScope(),
+  resultController.create
 );
 ```
 
 For students:
 
-```
+```ts
 router.get(
-  "/results/me",
+  "/students/:studentId/results",
   authenticate,
-  requirePermission(Permission.RESULT_READ),
-  requireScope(selfScopeForStudent),
-  resultsController.listMine
+  requirePermission("results:read"),
+  requireSelfOrAuthorizedScope(),
+  resultController.get
 );
 ```
 
@@ -1954,14 +1812,14 @@ router.get(
 
 ## 20.1 Single Role Assignment Matrix
 
-| Target Role       | SUPER\_ADMIN | ADMIN                       | DEPARTMENT\_HEAD       | INSTRUCTOR | STUDENT | ACCOUNTANT |
-| ------------------ | ------------ | ---------------------------- | ------------------------ | ---------- | ------- | ---------- |
-| `SUPER_ADMIN`     | ✓            | —                             | —                         | —          | —       | —          |
-| `ADMIN`           | ✓            | ✓ with default permissions   | —                         | —          | —       | —          |
-| `DEPARTMENT_HEAD` | ✓            | ✓ if permitted               | Scoped recommendation    | —          | —       | —          |
-| `INSTRUCTOR`      | ✓            | ✓ if permitted               | ✓ scoped                 | —          | —       | —          |
-| `STUDENT`         | ✓            | ✓ if permitted               | ✓ scoped                 | —          | —       | —          |
-| `ACCOUNTANT`      | ✓            | ✓ if permitted               | —                         | —          | —       | —          |
+| Target Role | SUPER_ADMIN | ADMIN | DEPARTMENT_HEAD | INSTRUCTOR | STUDENT | ACCOUNTANT |
+|---|---|---|---|---|---|---|
+| `SUPER_ADMIN` | ✓ | — | — | — | — | — |
+| `ADMIN` | ✓ | ✓ with default permissions | — | — | — | — |
+| `DEPARTMENT_HEAD` | ✓ | ✓ if permitted | Scoped recommendation | — | — | — |
+| `INSTRUCTOR` | ✓ | ✓ if permitted | ✓ scoped | — | — | — |
+| `STUDENT` | ✓ | ✓ if permitted | ✓ scoped | — | — | — |
+| `ACCOUNTANT` | ✓ | ✓ if permitted | — | — | — | — |
 
 Every target user receives exactly **one** role.
 
@@ -1969,10 +1827,10 @@ Every target user receives exactly **one** role.
 
 When an `ADMIN` creates another `ADMIN`:
 
-```
+```text
 Existing ADMIN
      ↓
-Check: USER_CREATE capability
+Check: USER_CREATE / ADMIN_CREATE capability
      ↓
 Create User with role = ADMIN
      ↓
@@ -1980,14 +1838,14 @@ Apply DEFAULT_ADMIN_PERMISSIONS
      ↓
 Save User
      ↓
-Audit USER_CREATED
+Audit ADMIN_CREATED
 ```
 
 The existing admin cannot pass a custom permission array.
 
 ## 20.3 ADMIN Permission Customization Rule
 
-```
+```text
 SUPER_ADMIN
      ↓
 Select ADMIN
@@ -2000,7 +1858,7 @@ Validate Delegable Permission Set
      ↓
 Update User.permissions
      ↓
-Audit PERMISSION_CHANGED
+Audit ADMIN_PERMISSION_UPDATED
 ```
 
 An `ADMIN` cannot perform this workflow on itself or another admin.
@@ -2009,11 +1867,9 @@ An `ADMIN` cannot perform this workflow on itself or another admin.
 
 # 21. Additional Recommended Permission Groups
 
-For future growth, the `Permission` enum could be reorganized by domain
-(this is a forward-looking suggestion — the implemented enum in §11 is
-flat, not namespaced):
+For future growth, organize the `Permission` enum by domain:
 
-```
+```text
 AUTH
 USER_MANAGEMENT
 ACADEMIC
@@ -2032,7 +1888,7 @@ AUDIT
 
 Example:
 
-```
+```text
 ACADEMIC.COURSE.READ
 ACADEMIC.COURSE.CREATE
 ACADEMIC.COURSE.ASSIGN
@@ -2051,7 +1907,13 @@ RBAC.PERMISSION.MANAGE
 AUDIT.LOG.READ
 ```
 
-Either dot notation or colon notation is acceptable. Choose one convention and keep it consistent. This document recommends flat `RESOURCE_ACTION` naming for simpler Prisma-enum implementation — which is what's actually implemented.
+Either dot notation or colon notation is acceptable. Choose one convention and keep it consistent. This document recommends:
+
+```text
+resource:action
+```
+
+for simpler implementation.
 
 ---
 
@@ -2059,12 +1921,12 @@ Either dot notation or colon notation is acceptable. Choose one convention and k
 
 The system should use:
 
-```
+```text
 RBAC
   +
-Faculty/Department Scope
+Department Scope
   +
-Course/Section Assignment Scope
+Course Assignment Scope
   +
 Self Scope
   +
@@ -2081,20 +1943,20 @@ This is stronger than pure role-based checks.
 
 A user has:
 
-```
+```text
 Role: INSTRUCTOR
-Permission: RESULT_UPDATE
+Permission: grades:update
 ```
 
 That alone is **not enough**.
 
 The backend must additionally verify:
 
-```
-1. Section's course is assigned to instructor (CourseInstructor)
-2. Student is enrolled in that section
-3. Grade/result belongs to that section
-4. Result is still in an editable state
+```text
+1. Course is assigned to instructor
+2. Student is enrolled in that course
+3. Grade belongs to that course
+4. Result is still editable
 5. Instructor is not attempting an approval-only operation
 ```
 
@@ -2106,7 +1968,7 @@ The backend must additionally verify:
 
 Do not accept:
 
-```
+```json
 {
   "departmentId": "another-department"
 }
@@ -2120,7 +1982,7 @@ Load the actual resource and derive scope server-side.
 
 Bad:
 
-```
+```ts
 if (user.role === "ADMIN") {
   ...
 }
@@ -2128,8 +1990,8 @@ if (user.role === "ADMIN") {
 
 Better:
 
-```
-if (await can(user, "COURSE_UPDATE", course)) {
+```ts
+if (await can(user, "courses:update", course)) {
   ...
 }
 ```
@@ -2139,11 +2001,10 @@ Centralize authorization logic so rules remain consistent.
 ## 23.3 Use Transactions for Critical State Changes
 
 For actions such as:
-
 - enrollment approval;
 - result approval/publishing;
 - payment reconciliation;
-- financial adjustment approval;
+- invoice adjustment;
 
 use database transactions where multiple records must change atomically.
 
@@ -2151,7 +2012,7 @@ use database transactions where multiple records must change atomically.
 
 Never assume:
 
-```
+```text
 GET /api/students/123
 ```
 
@@ -2159,7 +2020,7 @@ is safe because the user is logged in.
 
 Always verify:
 
-```
+```text
 authenticated
 + permission
 + object scope
@@ -2167,28 +2028,19 @@ authenticated
 
 ## 23.5 Soft Delete vs Hard Delete
 
-Soft deletion (`isDeleted`/`deletedAt`) is implemented for exactly these
-tables, matching `DATABASE_SCHEMA_README.md`'s soft-delete strategy:
+Prefer soft deletion/archive for:
+- students;
+- instructors;
+- courses;
+- invoices;
+- financial records;
+- audit-relevant records.
 
-```
-User
-Faculty
-Department
-Program
-Subject
-Course
-```
-
-`FinancialTransaction` and `AuditLog` have no delete flag at all — they
-are append-only by design (no `PATCH`/`DELETE` endpoint exists for
-either, per `API_INSTRUCTION.md` R-9). Lower-level operational rows
-(`Section`, `Assignment`, `Notice`, `Event`, etc.) use `isActive` instead
-of a full soft-delete pair.
+Hard deletion should be restricted to records where business and legal policy explicitly permits it.
 
 ## 23.6 Audit Before/After Critical Changes
 
 For critical changes, record:
-
 - actor;
 - target;
 - old state;
@@ -2203,29 +2055,26 @@ For critical changes, record:
 
 ## Role Hierarchy
 
-```
+```text
 SUPER_ADMIN
    │
    └── ADMIN
         ├── DEPARTMENT_HEAD
         │      └── INSTRUCTOR
+        │             └── STUDENT
         │
-        ├── ACCOUNTANT
-        │
-        └── STUDENT
+        └── ACCOUNTANT
 ```
 
-This is the same tree as §1.1 (see Changelog #1) — `STUDENT` and
-`ACCOUNTANT` are direct administrative children of `ADMIN`, not nested
-inside the academic chain.
+Conceptually, however, `ACCOUNTANT` is a **parallel financial authority**, not an academic subordinate.
 
 ## Role Scope
 
-```
+```text
 SUPER_ADMIN      → Entire University / System
 ADMIN            → Entire University / Administrative
 DEPARTMENT_HEAD  → Own Department(s)
-INSTRUCTOR       → Assigned Courses/Sections / Enrolled Students
+INSTRUCTOR       → Assigned Courses / Enrolled Students
 STUDENT          → Own Data + Public Data
 ACCOUNTANT       → Financial Data + Minimum Required Billing Context
 ```
@@ -2234,7 +2083,7 @@ ACCOUNTANT       → Financial Data + Minimum Required Billing Context
 
 Use:
 
-```
+```text
 Single Role
   ↓
 User Permission[]
@@ -2258,11 +2107,11 @@ Do not rely on CRUD alone.
 - Privileged roles require stronger security.
 - Student private data is isolated.
 - Financial and academic authority remain separate.
-- Faculty, department, and course/section boundaries are enforced server-side.
+- Department and course boundaries are enforced server-side.
 
 ## Data Access Strategy
 
-```
+```text
 Role = WHAT
 Scope = WHERE
 Resource State = WHEN
@@ -2273,7 +2122,7 @@ All four should be considered before allowing a sensitive operation.
 
 ## Recommended RBAC Architecture
 
-```
+```text
 User
   ├── role: Role
   └── permissions: Permission[]
@@ -2296,14 +2145,14 @@ ALLOW / DENY
 5. Let `ADMIN` create another `ADMIN` only with `DEFAULT_ADMIN_PERMISSIONS`.
 6. Do not accept custom admin permissions from an admin-created request payload.
 7. Use a consistent resource/action permission naming strategy in the `Permission` enum.
-8. Enforce faculty/department scope using relational data.
-9. Enforce instructor scope through `CourseInstructor.instructorId`.
-10. Enforce student scope through `StudentProfile` ownership, not `User.id` directly.
+8. Enforce department scope using relational data.
+9. Enforce instructor scope through `CourseInstructor`.
+10. Enforce student scope through ownership.
 11. Keep financial and academic permissions separate.
-12. Use middleware/guards (`authenticate`, `requirePermission`, `requireScope`) for authentication, role checks, and coarse permission checks.
+12. Use middleware/guards for authentication, role checks, and coarse permission checks.
 13. Use service-layer authorization for object-level and business-rule checks.
 14. Treat frontend permission checks as UX only.
-15. Audit role changes, admin creation, admin permission changes, and financial adjustment approvals.
+15. Audit role changes, admin creation, and admin permission changes.
 
 ---
 
@@ -2312,7 +2161,7 @@ ALLOW / DENY
 ### Authentication
 
 - [ ] Passwords securely hashed.
-- [ ] MFA available for privileged roles (`SuperAdminProfile.mfaEnabled`).
+- [ ] MFA available for privileged roles.
 - [ ] Access/session tokens expire.
 - [ ] Refresh/session rotation implemented.
 - [ ] Account status checked on every protected request.
@@ -2322,9 +2171,8 @@ ALLOW / DENY
 - [ ] Deny by default.
 - [ ] Permission checks centralized.
 - [ ] Object-level authorization implemented.
-- [ ] Faculty isolation implemented.
 - [ ] Department isolation implemented.
-- [ ] Course/section assignment isolation implemented.
+- [ ] Course assignment isolation implemented.
 - [ ] Student self-access enforced.
 - [ ] Financial scope enforced.
 - [ ] State-transition rules enforced.
@@ -2342,7 +2190,7 @@ ALLOW / DENY
 
 ### Academic Security
 
-- [ ] Instructor cannot modify unrelated courses/sections.
+- [ ] Instructor cannot modify unrelated courses.
 - [ ] Instructor cannot approve own results.
 - [ ] Student cannot modify grades.
 - [ ] Published results cannot be silently overwritten.
@@ -2353,9 +2201,9 @@ ALLOW / DENY
 - [ ] Student cannot verify own payment.
 - [ ] Accountant cannot modify grades.
 - [ ] Payment status verified server-side.
-- [ ] Financial adjustments require `FinancialAdjustmentRequest` approval, and the requester cannot approve their own request.
+- [ ] Financial adjustments are audited.
 - [ ] Refunds/adjustments can require approval.
-- [ ] Financial records have controlled deletion/archival (append-only — see §23.5).
+- [ ] Financial records have controlled deletion/archival.
 
 ### Privacy
 
@@ -2378,60 +2226,41 @@ ALLOW / DENY
 
 The recommended UMS authorization architecture is **not a simple six-role hierarchy**. It is a layered authorization system:
 
-```
-          AUTHENTICATION
-                ↓
-              USER
-         ┌──────┴──────┐
-         │             │
-    SINGLE ROLE   PERMISSION[]
-         │             │
-         └──────┬──────┘
-                ↓
-      RESOURCE + ACTION
-                ↓
-              SCOPE
-    ┌───────────┼───────────┐
-    │           │           │
- Faculty/    Department   Course/
-University              Section
-    │           │           │
-    └─────── Self/Financial
-                ↓
-         BUSINESS RULES
-                ↓
-           RESOURCE STATE
-                ↓
-           ALLOW / DENY
+```text
+                   AUTHENTICATION
+                         ↓
+                       USER
+                  ┌──────┴──────┐
+                  │             │
+             SINGLE ROLE   PERMISSION[]
+                  │             │
+                  └──────┬──────┘
+                         ↓
+               RESOURCE + ACTION
+                         ↓
+                       SCOPE
+             ┌───────────┼───────────┐
+             │           │           │
+         University   Department   Course
+             │           │           │
+             └─────── Self/Financial
+                         ↓
+                  BUSINESS RULES
+                         ↓
+                    RESOURCE STATE
+                         ↓
+                    ALLOW / DENY
 ```
 
 The six primary roles remain clear and accountable:
 
-```
+```text
 SUPER_ADMIN      → System Governance
 ADMIN            → University Operations
 DEPARTMENT_HEAD  → Department Academic Management
-INSTRUCTOR       → Course/Section-Level Teaching
+INSTRUCTOR       → Course-Level Teaching
 STUDENT          → Self-Service
 ACCOUNTANT       → Financial Operations
 ```
 
-Their organizational relationship follows one consistent tree throughout
-this document and every other project document (see Changelog #1):
-
-```
-SUPER_ADMIN
-   └── ADMIN
-        ├── DEPARTMENT_HEAD → INSTRUCTOR
-        ├── ACCOUNTANT
-        └── STUDENT
-```
-
 This structure provides a strong foundation for implementing the UMS database schema, Prisma models, backend middleware/guards, API authorization, audit logging, and frontend role/permission-based UI with a strict **one-user-one-role** model. `SUPER_ADMIN` remains the authority for customizing `ADMIN` resource permissions, while an `ADMIN` may create another admin only with the predefined default admin permission set.
-
-For the fully implemented version of everything sketched conceptually
-here, see:
-
-- [`docs/DATABASE_SCHEMA_README.md`](docs/DATABASE_SCHEMA_README.md) — every table, field, and relationship
-- [`docs/API_INSTRUCTION.md`](docs/API_INSTRUCTION.md) — the full API contract, per role
-- [`docs/MODULAR_ARCHITECTURE_GUIDE.md`](docs/MODULAR_ARCHITECTURE_GUIDE.md) — how the codebase is organized and why
