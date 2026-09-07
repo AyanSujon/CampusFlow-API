@@ -99,6 +99,10 @@ const createCourse = async (payload: ICreateCoursePayload) => {
 	return course;
 };
 
+
+
+
+
 export const coursesService = {
 	createCourse,
 };
