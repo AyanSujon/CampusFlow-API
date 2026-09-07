@@ -3,6 +3,7 @@ import httpStatus from "http-status";
 import { prisma } from "../../../lib/prisma";
 import { AppError } from "../../../utils/AppError";
 import type { ICreateProgramPayload, IUpdateProgram } from "./program.interface";
+import { DegreeType } from "../../../../generated/prisma/enums";
 
 const createProgram = async (payload: ICreateProgramPayload) => {
 	const {
@@ -154,7 +155,7 @@ const updateProgram = async (
 			}),
 
 			...(payload.degreeType && {
-				degreeType: payload.degreeType as any,
+				degreeType: payload.degreeType as DegreeType,
 			}),
 
 			...(payload.durationYears !== undefined && {
