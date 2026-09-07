@@ -1,9 +1,6 @@
 import { prisma } from "../../../lib/prisma";
 import { ICreateCoursePayload } from "./course.interface";
 
-
-
-
 const createCourse = async (payload: ICreateCoursePayload) => {
 	const {
 		departmentId,
@@ -93,7 +90,7 @@ const createCourse = async (payload: ICreateCoursePayload) => {
 				select: {
 					id: true,
 					code: true,
-					name: true,
+					title: true,
 				},
 			},
 		},
@@ -105,10 +102,3 @@ const createCourse = async (payload: ICreateCoursePayload) => {
 export const coursesService = {
 	createCourse,
 };
-
-
-
-
-
-
-
