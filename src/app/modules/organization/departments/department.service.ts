@@ -2,7 +2,7 @@ import httpStatus from "http-status";
 
 import { prisma } from "../../../lib/prisma";
 import { AppError } from "../../../utils/AppError";
-import { CreateDepartmentPayload, GetAllDepartmentsPayload } from "./department.interface";
+import { CreateDepartmentPayload, GetAllDepartmentsPayload, IUpdateDepartmentPayload } from "./department.interface";
 import { Role } from "../../../../generated/prisma/enums";
 
 
@@ -237,9 +237,111 @@ const getAllDepartments = async (
 
 
 
+
+
+
+
+
+const updateDepartment = async (id: string, payload: IUpdateDepartmentPayload) => {
+  // 1. Check if department exists and is not soft-deleted
+  const existingDepartment = await prisma.department.findFirst({
+    where: {
+      id,
+      isDeleted: false,
+    },
+  });
+
+  if (!existingDepartment) {
+    throw new AppError(httpStatus.NOT_FOUND, "Department not found");
+  }
+
+  // 2. If code is being updated, check uniqueness
+  if (payload.code && payload.code !== existingDepartment.code) {
+    const codeExists = await prisma.department.findFirst({
+      where: {
+        code: payload.code as string,
+        isDeleted: false,
+        NOT: { id },
+      },
+    });
+
+    if (codeExists) {
+      throw new AppError(httpStatus.CONFLICT, "Department code already exists");
+    }
+  }
+
+  // 3. Optional but recommended: Validate headUserId (as per your model comment)
+  if (payload.headUserId) {
+    const headUser = await prisma.user.findFirst({
+      where: {
+        id: payload.headUserId as string,
+        role: "DEPARTMENT_HEAD",
+        departmentId: id, // must belong to this department
+        isDeleted: false,
+      },
+    });
+
+    if (!headUser) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Invalid department head. User must have role DEPARTMENT_HEAD and belong to this department"
+      );
+    }
+  }
+
+  // 4. Perform the update
+  const result = await prisma.department.update({
+    where: { id },
+    data: {
+      ...payload,
+      // Protect sensitive fields (optional but recommended)
+      isDeleted: undefined,
+      deletedAt: undefined,
+    },
+    include: {
+      faculty: true,
+      head: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+        },
+      },
+    },
+  });
+
+  return result;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 export const departmentsService = {
 	createDepartment,
     getAllDepartments,
+	updateDepartment,
+
 };
 
 

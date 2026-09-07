@@ -16,3 +16,11 @@ export interface GetAllDepartmentsPayload {
 	isActive?: boolean;
 }
 
+
+export interface IUpdateDepartmentPayload {
+  code?: string;
+  name?: string;
+  description?: string | null;
+  headUserId?: string | null;
+  isActive?: boolean;
+};

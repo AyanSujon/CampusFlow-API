@@ -64,6 +64,54 @@ const getAllDepartments = catchAsync(
 
 
 
+const updateDepartment = catchAsync(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const payload = req.body;
+
+    const result = await departmentsService.updateDepartment(id as string, payload);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Department updated successfully",
+      data: result,
+    });
+  },
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -78,6 +126,8 @@ const getAllDepartments = catchAsync(
 export const departmentsController = {
     createDepartment,
     getAllDepartments,
+	updateDepartment,
+
 
 
 
