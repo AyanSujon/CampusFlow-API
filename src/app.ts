@@ -16,6 +16,7 @@ import { financeRoutes } from "./app/modules/finance/finance.routes";
 import { globalRateLimiter } from "./app/middleware/rateLimiter";
 import { healthCheck } from "./app/middleware/healthCheck";
 import { organizationRoutes } from "./app/modules/organization/organization.routes";
+import { academicCatalogRoutes } from "./app/modules/academic-catalog/academic-catalog.routes";
 
 const app: Application = express();
 
@@ -53,6 +54,8 @@ app.use("/api/v1/auth", AuthRoutes);
 app.use("/api/v1/profiles", profileRoutes);
 app.use("/api/v1/finance", financeRoutes);
 app.use("/api/v1/organization", organizationRoutes);
+app.use("/api/v1/academic-catalog", academicCatalogRoutes);
+
 
 // 8. Health check
 app.get("/", healthCheck);
