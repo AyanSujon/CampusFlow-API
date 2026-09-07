@@ -22,9 +22,23 @@ const createProgram = catchAsync(async (req: Request, res: Response) => {
 
 
 
+const getAllPrograms = catchAsync(async (req: Request, res: Response) => {
+	const result = await programsService.getAllPrograms();
+
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Retrieved All Programs Successfully",
+		data: result,
+	});
+});
+
+
+
 
 
 
 export const programsController = {
 	createProgram,
+    getAllPrograms
 };

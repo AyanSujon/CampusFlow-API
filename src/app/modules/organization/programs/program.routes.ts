@@ -1,11 +1,14 @@
 import { Router } from "express";
 import { programsController } from "./program.controller";
+import { Role } from "../../../../generated/prisma/enums";
+import { auth } from "../../../middleware/checkAuth";
 
 
 const router = Router();
 
 
-router.post("/create", programsController.createProgram)
+router.post("/create", auth(Role.SUPER_ADMIN, Role.ADMIN),  programsController.createProgram)
+router.post("/all",  programsController.getAllPrograms)
 
 
 

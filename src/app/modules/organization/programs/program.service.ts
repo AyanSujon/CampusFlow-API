@@ -90,7 +90,48 @@ const createProgram = async (payload: ICreateProgramPayload) => {
 
 
 
+const getAllPrograms = async () => {
+	const programs = await prisma.program.findMany({
+		where: {
+			isDeleted: false,
+		},
+		select: {
+			id: true,
+			code: true,
+			name: true,
+			degreeType: true,
+			durationYears: true,
+			totalCredits: true,
+			description: true,
+			isActive: true,
+			createdAt: true,
+			updatedAt: true,
+
+			department: {
+				select: {
+					id: true,
+					code: true,
+					name: true,
+				},
+			},
+		},
+		orderBy: {
+			createdAt: "desc",
+		},
+	});
+
+	return programs;
+};
+
+
+
+
+
+
+
 
 export const programsService = {
 	createProgram,
+    getAllPrograms,
+
 };
