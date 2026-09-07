@@ -89,6 +89,36 @@ maps directly onto them:
   `STUDENT` for their own records — read access that's scoped to "you,"
   not "everyone."
 
+
+
+
+
+## Demo / Test Credentials
+
+Seeded by `npm run seed` for local development only — **one account per
+role**:
+
+| Role            | Name                   | Email                      | Password               |
+| --------------- | ---------------------- | -------------------------- | ---------------------- |
+| SUPER_ADMIN     | TESTER Super Admin     | `superadmin@gmail.com`     | `Super@admin12345`     |
+| ADMIN           | TESTER Admin           | `admin@gmail.com`          | `Admin@12345`          |
+| DEPARTMENT_HEAD | TESTER Department Head | `departmenthead@gmail.com` | `DepartmentHead@12345` |
+| INSTRUCTOR      | TESTER Instructor      | `instructor@gmail.com`     | `Instructor@12345`     |
+| STUDENT         | TESTER Student         | `student@gmail.com`        | `Student@12345`        |
+| ACCOUNTANT      | TESTER Accountant      | `accountant@gmail.com`     | `Accountant@12345`     |
+
+> **These credentials must never exist in a production database.** They
+> are created only by the local seed script, against a local/staging
+> database — rotate or remove them before any deployment that isn't
+> strictly for local development.
+
+
+
+
+
+
+
+
 ## Key Features
 
 **Users & Profiles**
@@ -254,24 +284,7 @@ The API will be available at `http://localhost:4000/api/v1` (or whichever
 > values, and keep real secrets out of version control and out of this
 > file.
 
-## Demo / Test Credentials
 
-Seeded by `npm run seed` for local development only — **one account per
-role**:
-
-| Role | Email | Password | Notes |
-|---|---|---|---|
-| `SUPER_ADMIN` | `superadmin@campusflow.test` | `Demo@1234` | Full system access |
-| `ADMIN` | `admin@campusflow.test` | `Demo@1234` | University-wide operations |
-| `DEPARTMENT_HEAD` | `depthead@campusflow.test` | `Demo@1234` | Scoped to a seeded demo department |
-| `INSTRUCTOR` | `instructor@campusflow.test` | `Demo@1234` | Assigned to a seeded demo course |
-| `STUDENT` | `student@campusflow.test` | `Demo@1234` | Enrolled in a seeded demo section |
-| `ACCOUNTANT` | `accountant@campusflow.test` | `Demo@1234` | Financial resources only |
-
-> **These credentials must never exist in a production database.** They
-> are created only by the local seed script, against a local/staging
-> database — rotate or remove them before any deployment that isn't
-> strictly for local development.
 
 ## API Documentation
 
