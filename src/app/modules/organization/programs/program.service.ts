@@ -2,7 +2,7 @@
 import httpStatus from "http-status";
 import { prisma } from "../../../lib/prisma";
 import { AppError } from "../../../utils/AppError";
-import type { ICreateProgramPayload } from "./program.interface";
+import type { ICreateProgramPayload, IUpdateProgram } from "./program.interface";
 
 const createProgram = async (payload: ICreateProgramPayload) => {
 	const {
@@ -90,6 +90,118 @@ const createProgram = async (payload: ICreateProgramPayload) => {
 
 
 
+
+
+const updateProgram = async (
+	id: string,
+	payload: IUpdateProgram
+) => {
+	// Check if program exists
+	const existingProgram = await prisma.program.findFirst({
+		where: {
+			id,
+			isDeleted: false,
+		},
+	});
+
+	if (!existingProgram) {
+		throw new AppError(404, "Program not found");
+	}
+
+	// Check department if departmentId is being updated
+	if (payload.departmentId) {
+		const department = await prisma.department.findFirst({
+			where: {
+				id: payload.departmentId,
+				isDeleted: false,
+			},
+		});
+
+		if (!department) {
+			throw new AppError(404, "Department not found");
+		}
+	}
+
+	// Check duplicate program code
+	if (payload.code && payload.code !== existingProgram.code) {
+		const existingCode = await prisma.program.findUnique({
+			where: {
+				code: payload.code,
+			},
+		});
+
+		if (existingCode) {
+			throw new AppError(409, "Program code already exists");
+		}
+	}
+
+	// Update program
+	const updatedProgram = await prisma.program.update({
+		where: {
+			id,
+		},
+		data: {
+			...(payload.departmentId && {
+				departmentId: payload.departmentId,
+			}),
+
+			...(payload.code && {
+				code: payload.code,
+			}),
+
+			...(payload.name && {
+				name: payload.name,
+			}),
+
+			...(payload.degreeType && {
+				degreeType: payload.degreeType as any,
+			}),
+
+			...(payload.durationYears !== undefined && {
+				durationYears: payload.durationYears,
+			}),
+
+			...(payload.totalCredits !== undefined && {
+				totalCredits: payload.totalCredits,
+			}),
+
+			...(payload.description !== undefined && {
+				description: payload.description,
+			}),
+
+			...(payload.isActive !== undefined && {
+				isActive: payload.isActive,
+			}),
+		},
+		include: {
+			department: {
+				select: {
+					id: true,
+					code: true,
+					name: true,
+				},
+			},
+		},
+	});
+
+	return updatedProgram;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const getAllPrograms = async () => {
 	const programs = await prisma.program.findMany({
 		where: {
@@ -132,6 +244,8 @@ const getAllPrograms = async () => {
 
 export const programsService = {
 	createProgram,
+    updateProgram,
     getAllPrograms,
+
 
 };

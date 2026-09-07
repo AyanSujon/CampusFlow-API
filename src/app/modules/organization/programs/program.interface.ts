@@ -10,3 +10,13 @@ export interface ICreateProgramPayload {
 	description?: string;
 }
 
+export interface IUpdateProgram {
+	departmentId?: string;
+	code?: string;
+	name?: string;
+	degreeType?: DegreeType;
+	durationYears?: number;
+	totalCredits?: number;
+	description?: string;
+	isActive?: boolean;
+}
