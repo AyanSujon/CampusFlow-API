@@ -335,12 +335,12 @@ const googleLogin = async (payload: IGoogleLoginPayload) => {
 					googleId: googleIdTokenPayload.sub,
 					authProvider: AuthProvider.GOOGLE,
 					emailVerified: true,
-					student: {
-						create: {
+					studentProfile: {
+						create:{
 							name: googleIdTokenPayload.name,
 							email: googleIdTokenPayload.email,
-						},
-					},
+						}
+					}
 				},
 			});
 		}
