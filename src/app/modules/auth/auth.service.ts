@@ -4,6 +4,7 @@ import crypto from "crypto";
 import ejs from "ejs";
 import type { TokenPayload } from "google-auth-library";
 import type { JwtPayload, SignOptions } from "jsonwebtoken";
+import httpStatus from "http-status";
 import path from "path";
 import {
 	AuthProvider,
@@ -22,109 +23,337 @@ import type {
 	IRegisterStudentPayload,
 	IRequestUser,
 	IResetPasswordPayload,
+	IVerifyEmailPayload,
 } from "./auth.interface";
 import { generateStudentId } from "../../utils/idGenerator";
 import { Prisma } from "../../../generated/prisma/browser";
+import { AppError } from "../../utils/AppError";
+
+
+// const registerStudent = async (payload: IRegisterStudentPayload) => {
+// 	const {
+// 		name,
+// 		password,
+// 		email,
+// 		studentProfile: studentProfileData,
+// 	} = payload;
+
+// 	// Check existing user
+// 	const isUserExists = await prisma.user.findUnique({
+// 		where: { email },
+// 	});
+
+// 	if (isUserExists) {
+// 		throw new Error("User with this email already exists");
+// 	}
+
+// 	// Hash password
+// 	const hashedPassword = await bcrypt.hash(password, 8);
+
+// 	/* ============================================================
+// 	   STUDENT ID Generate Logic
+	   
+// 	   Format: STU-YYYY-DEPT-XXXX
+
+// 	   Example:
+// 	   STU-2026-CSE-0001
+// 	   STU-2026-CSE-0002
+// 	   STU-2026-EEE-0001
+// 	============================================================ */
+
+// 	// Generate only when student profile is provided
+// 	const studentId = studentProfileData
+// 		? generateStudentId("CSE", 1, 2026)
+// 		: undefined;
+
+// 	// Prepare user data
+// 	const userData: Prisma.UserCreateInput = {
+// 		name,
+// 		email,
+// 		password: hashedPassword,
+// 		role: Role.STUDENT,
+
+// 		// Student profile is completely optional
+// 		...(studentProfileData && {
+// 			studentProfile: {
+// 				create: {
+// 					...studentProfileData,
+// 					studentId: studentId!,
+// 				},
+// 			},
+// 		}),
+// 	};
+
+// 	const createdUser = await prisma.user.create({
+// 		data: userData,
+
+// 		omit: {
+// 			password: true,
+// 		},
+
+// 		include: {
+// 			studentProfile: true,
+// 		},
+// 	});
+
+// 	const { studentProfile, ...user } = createdUser;
+
+// 	// JWT Payload
+// 	const jwtPayload = {
+// 		id: user.id,
+// 		email: user.email,
+// 		name: user.name,
+// 		role: user.role,
+		
+// 	};
+
+// 	// Access Token
+// 	const accessToken = jwtUtils.createToken(
+// 		jwtPayload,
+// 		config.jwt_access_secret,
+// 		config.jwt_access_expires_in as SignOptions,
+// 	);
+
+// 	// Refresh Token
+// 	const refreshToken = jwtUtils.createToken(
+// 		jwtPayload,
+// 		config.jwt_refresh_secret,
+// 		config.jwt_refresh_expires_in as SignOptions,
+// 	);
+
+// 	return {
+// 		user,
+// 		studentProfile,
+// 		accessToken,
+// 		refreshToken,
+// 	};
+// };
+
+
+
+
 
 
 const registerStudent = async (payload: IRegisterStudentPayload) => {
-	const {
+  	const {
 		name,
 		password,
-		email,
 		studentProfile: studentProfileData,
 	} = payload;
 
-	// Check existing user
-	const isUserExists = await prisma.user.findUnique({
-		where: { email },
-	});
 
-	if (isUserExists) {
-		throw new Error("User with this email already exists");
-	}
+  const email = payload.email.trim().toLowerCase();
 
-	// Hash password
-	const hashedPassword = await bcrypt.hash(password, 8);
+  const isUserExists = await prisma.user.findUnique({
+    where: { email },
+  });
 
-	/* ============================================================
-	   STUDENT ID Generate Logic
-	   
-	   Format: STU-YYYY-DEPT-XXXX
+  if (isUserExists) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      "User with this email already exists",
+    );
+  }
 
-	   Example:
-	   STU-2026-CSE-0001
-	   STU-2026-CSE-0002
-	   STU-2026-EEE-0001
-	============================================================ */
+  const hashedPassword = await bcrypt.hash(password, 8);
 
-	// Generate only when student profile is provided
-	const studentId = studentProfileData
-		? generateStudentId("CSE", 1, 2026)
-		: undefined;
+  const expirationSeconds = 5 * 60;
 
-	// Prepare user data
-	const userData: Prisma.UserCreateInput = {
-		name,
-		email,
-		password: hashedPassword,
-		role: Role.STUDENT,
+  const otpKey = `student-registration-otp:${email}`;
+  const otpValue = crypto.randomInt(100000, 1000000).toString();
 
-		// Student profile is completely optional
-		...(studentProfileData && {
-			studentProfile: {
-				create: {
-					...studentProfileData,
-					studentId: studentId!,
-				},
-			},
-		}),
-	};
+  if (config.node_env === "development") {
+    console.log(`[dev] OTP ${email} : ${otpValue}`);
+  }
 
-	const createdUser = await prisma.user.create({
-		data: userData,
+  await redisClient.set(otpKey, otpValue, {
+    expiration: {
+      type: "EX",
+      value: expirationSeconds,
+    },
+  });
 
-		omit: {
-			password: true,
-		},
+  const studentRegistrationKey = `student-registration-data:${email}`;
+  const redisUserDataPayload = {
+    name,
+    email,
+    password: hashedPassword,
+	studentProfileData
+  };
 
-		include: {
-			studentProfile: true,
-		},
-	});
+  await redisClient.set(
+    studentRegistrationKey,
+    JSON.stringify(redisUserDataPayload),
+    {
+      expiration: {
+        type: "EX",
+        value: expirationSeconds,
+      },
+    },
+  );
 
-	const { studentProfile, ...user } = createdUser;
+  const tempatePath = path.join(
+    process.cwd(),
+    "src/app/templates/registration-user-otp.ejs",
+  );
 
-	// JWT Payload
-	const jwtPayload = {
-		id: user.id,
-		email: user.email,
-		name: user.name,
-		role: user.role,
-		
-	};
+  const templateData = {
+    name,
+    email,
+    otp: otpValue,
+    expirationMinutes: expirationSeconds / 60,
+  };
 
-	// Access Token
-	const accessToken = jwtUtils.createToken(
-		jwtPayload,
-		config.jwt_access_secret,
-		config.jwt_access_expires_in as SignOptions,
-	);
+  const html = await ejs.renderFile(tempatePath, templateData);
 
-	// Refresh Token
-	const refreshToken = jwtUtils.createToken(
-		jwtPayload,
-		config.jwt_refresh_secret,
-		config.jwt_refresh_expires_in as SignOptions,
-	);
-
-	return {
-		user,
-		studentProfile,
-		accessToken,
-		refreshToken,
-	};
+  await transporter.sendMail({
+    from: config.email_sender,
+    to: email,
+    subject: "Email Verification",
+    // text : `Your OTP is ${otp}`
+    // html: `<h1>Your OTP is ${otp}</h1>`
+    html,
+  });
 };
+
+
+
+
+
+
+
+
+
+
+const verifyStudentEmail = async (payload: IVerifyEmailPayload) => {
+  const otp = payload.otp;
+  const email = payload.email.trim().toLowerCase();
+
+  const isUserExist = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (isUserExist?.isActive === false) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is Blocked");
+  }
+
+  if (isUserExist?.emailVerified) {
+    throw new AppError(httpStatus.CONFLICT, "Email ALready Verified");
+  }
+
+  if (isUserExist?.isDeleted || isUserExist?.isDeleted === true) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is Deleted");
+  }
+
+  const otpKey = `student-registration-otp:${email}`;
+
+  const redisOtp = await redisClient.get(otpKey);
+
+  if (!redisOtp) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid OTP");
+  }
+
+  if (redisOtp !== otp) {
+    throw new AppError(httpStatus.BAD_REQUEST, "OTP Does Not Match");
+  }
+
+  await redisClient.del(otpKey);
+
+  const studentRegistrationKey = `student-registration-data:${email}`;
+
+  const redisStudentData = await redisClient.get(studentRegistrationKey);
+
+  if (!redisStudentData) {
+    throw new AppError(httpStatus.NOT_FOUND, "Student Doesnt Exist");
+  }
+
+  const studentPayload: IRegisterStudentPayload = JSON.parse(redisStudentData);
+
+  const createdUser = await prisma.user.create({
+    data: {
+      name: studentPayload.name,
+      email: studentPayload.email,
+      password: studentPayload.password,
+      role: Role.STUDENT,
+      isActive: true,
+      emailVerified: true,
+      studentProfile: {
+        create: {
+          name: studentPayload.name,
+          email: studentPayload.email,
+          
+        },
+      },
+    },
+    omit: { password: true },
+    include: { studentProfile: true },
+  });
+
+  await redisClient.del(studentRegistrationKey);
+
+  const tempatePath = path.join(
+    process.cwd(),
+    "src/app/templates/student-welcome-email.ejs",
+  );
+
+  const templateData = {
+    name: createdUser.name,
+  };
+
+  const html = await ejs.renderFile(tempatePath, templateData);
+
+  await transporter.sendMail({
+    from: config.email_sender,
+    to: email,
+    subject: "Welcome to CampusFlow - University Management System",
+    // text : `Your OTP is ${otp}`
+    // html: `<h1>Your OTP is ${otp}</h1>`
+    html,
+  });
+
+  const { studentProfile, ...user } = createdUser;
+  const jwtPayload = {
+    userId: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  };
+
+  const accessToken = jwtUtils.createToken(
+    jwtPayload,
+    config.jwt_access_secret,
+    config.jwt_access_expires_in as SignOptions,
+  );
+
+  const refreshToken = jwtUtils.createToken(
+    jwtPayload,
+    config.jwt_refresh_secret,
+    config.jwt_refresh_expires_in as SignOptions,
+  );
+
+  return {
+    user,
+    studentProfile,
+    accessToken,
+    refreshToken,
+  };
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -521,6 +750,7 @@ const resetPassword = async (payload : IResetPasswordPayload) => {
 
 export const AuthService = {
 	registerStudent,
+	verifyStudentEmail,
 	loginUser,
 	getMe,
 	refreshToken,

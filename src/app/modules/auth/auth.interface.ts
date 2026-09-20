@@ -23,6 +23,13 @@ export interface IRegisterStudentPayload {
   };
 }
 
+
+export interface IVerifyEmailPayload {
+	email: string;
+	otp: string;
+}
+
+
 export interface IRequestUser {
 	id: string;
 	email: string;

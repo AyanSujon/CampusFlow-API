@@ -8,39 +8,143 @@ import config from "../../config";
 
 
 // User Registration
-const registerStudent = catchAsync(async (req: Request, res: Response) => {
+// const registerStudent = catchAsync(async (req: Request, res: Response) => {
 
-	const payload = req.body;
+// 	const payload = req.body;
 	
-	const result = await AuthService.registerStudent(payload);
+// 	const result = await AuthService.registerStudent(payload);
 
-	const { accessToken, refreshToken, user, studentProfile } = result;
+// 	const { accessToken, refreshToken, user, studentProfile } = result;
 
-	res.cookie("accessToken", accessToken, {
-		httpOnly: true,
-		secure: config.node_env === "development" ? false : true,
-		sameSite:  config.node_env === "development" ? "lax" : "none",
-		maxAge: 1000 * 60 * 60 * 24, // 24 hour or 1 day
-	});
-	res.cookie("refreshToken", refreshToken, {
-		httpOnly: true,
-		secure: config.node_env === "development" ? false : true,
-		sameSite:  config.node_env === "development" ? "lax" : "none",
-		maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-	});
+// 	res.cookie("accessToken", accessToken, {
+// 		httpOnly: true,
+// 		secure: config.node_env === "development" ? false : true,
+// 		sameSite:  config.node_env === "development" ? "lax" : "none",
+// 		maxAge: 1000 * 60 * 60 * 24, // 24 hour or 1 day
+// 	});
+// 	res.cookie("refreshToken", refreshToken, {
+// 		httpOnly: true,
+// 		secure: config.node_env === "development" ? false : true,
+// 		sameSite:  config.node_env === "development" ? "lax" : "none",
+// 		maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+// 	});
 
-	sendResponse(res, {
-		statusCode: httpStatus.CREATED,
-		success: true,
-		message: "Student registered successfully",
-		data: {
-			accessToken,
-			refreshToken,
-			user,
-			studentProfile,
-		},
-	});
+// 	sendResponse(res, {
+// 		statusCode: httpStatus.CREATED,
+// 		success: true,
+// 		message: "Student registered successfully",
+// 		data: {
+// 			accessToken,
+// 			refreshToken,
+// 			user,
+// 			studentProfile,
+// 		},
+// 	});
+// });
+
+
+
+
+const registerStudent = catchAsync(async (req: Request, res: Response) => {
+  // const payload = PatientValidation.PatientRegistrationZodSchema.safeParse(req.body);
+
+  // if(!payload.success){
+  // 	console.log(payload.error);
+  // 	console.log(payload.error.issues);
+
+  // 	throw new Error(payload.error.issues[0].message)
+  // }
+
+  // console.log(payload);
+
+  const payload = req.body;
+
+  await AuthService.registerStudent(payload);
+
+  // const { accessToken, refreshToken, user, patient } = result;
+
+  // res.cookie("accessToken", accessToken, {
+  // 	httpOnly: true,
+  // 	secure: false,
+  // 	sameSite: "none",
+  // 	maxAge: 1000 * 60 * 60 * 24, // 24 hour or 1 day
+  // });
+  // res.cookie("refreshToken", refreshToken, {
+  // 	httpOnly: true,
+  // 	secure: false,
+  // 	sameSite: "none",
+  // 	maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+  // });
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Verification OTP Sent",
+    data: null,
+  });
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const verifyStudentEmail = catchAsync(async (req: Request, res: Response) => {
+  const payload = req.body;
+
+  const result = await AuthService.verifyStudentEmail(payload);
+  console.log(result, "verify email backend")
+
+  const { accessToken, refreshToken, user, studentProfile } = result;
+
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: config.node_env === "development" ? false : true,
+    sameSite: config.node_env === "development" ? "lax" : "none",
+    maxAge: 1000 * 60 * 60 * 24, // 24 hour or 1 day
+  });
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: config.node_env === "development" ? false : true,
+    sameSite: config.node_env === "development" ? "lax" : "none",
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Email Verified Successfully",
+    data: {
+      accessToken,
+      refreshToken,
+      user,
+      studentProfile,
+    },
+  });
+});
+
+
+
+
+
+
+
+
+
+
+
+
 // user Login 
 const loginUser = catchAsync(async (req: Request, res: Response) => {
 	const payload = req.body;
@@ -195,6 +299,7 @@ const logout = catchAsync(async (req: Request, res: Response) => {
 
 export const AuthController = {
 	registerStudent,
+	verifyStudentEmail,
 	loginUser,
 	getMe,
 	refreshToken,

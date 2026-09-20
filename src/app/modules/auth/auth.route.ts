@@ -10,32 +10,15 @@ const router = Router();
 
 
 router.post("/register",
-	// (req : Request, res : Response, next : NextFunction) => {
-
-	// 	try {
-	// 		// const payload = req.body ? req.body : {}
-	// 		const payload = req.body ?? {}
-
-	// 		const result = PatientValidation.PatientRegistrationZodSchema.safeParse(payload);
-
-	// 		if (!result.success) {
-	// 			console.log(result.error);
-	// 			console.log(result.error.issues);
-
-	// 			throw new Error(result.error.issues[0].message)
-	// 		}
-
-	// 		req.body = result.data
-
-	// 		next()
-	// 	} catch (error) {
-			
-	// 		next(error)
-	// 	}
-	// },
-
 	validateRequest(UserValidation.StudentRegistrationZodSchema),
 	 AuthController.registerStudent);
+
+router.post(
+  "/verify-email",
+  validateRequest(UserValidation.studentEmailVerifyZodSchema),
+  AuthController.verifyStudentEmail,
+);
+
 router.post("/login",
 	validateRequest(UserValidation.LoginZodSchema),
 	 AuthController.loginUser);
