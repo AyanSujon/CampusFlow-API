@@ -156,6 +156,15 @@ enum StudentAcademicStatus {
   EXPELLED
 }
 
+enum InstructorVerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+
+
+
 enum EmploymentStatus {
   ACTIVE
   ON_LEAVE

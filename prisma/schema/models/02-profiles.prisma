@@ -18,6 +18,7 @@ model SuperAdminProfile {
   employeeId             String    @unique
   name                   String?
   email                  String?
+  avatar                 String?
   designation            String?
   phone                  String?
   /// Whether multi-factor auth is enabled for this account. SUPER_ADMIN
@@ -48,6 +49,7 @@ model AdminProfile {
   employeeId  String   @unique
   name        String?
   email       String?
+  avatar      String?
   designation String?
   phone       String?
   createdAt   DateTime @default(now())
@@ -67,6 +69,7 @@ model DepartmentHeadProfile {
   employeeId  String    @unique
   name        String?
   email       String?
+  avatar      String?
   designation String?
   /// When this person was appointed department head.
   appointedAt DateTime?
@@ -82,17 +85,30 @@ model DepartmentHeadProfile {
 
 /// Profile for INSTRUCTOR users.
 model InstructorProfile {
-  id               String           @id @default(uuid())
-  userId           String           @unique
-  employeeId       String           @unique
-  name             String?
-  email            String?
-  designation      String?
-  specialization   String?
-  qualification    String?
-  joiningDate      DateTime?
-  phone            String?
-  officeRoom       String?
+  id                String    @id @default(uuid())
+  userId            String    @unique
+  employeeId        String    @unique
+  name              String?
+  email             String?
+  avatar            String?
+  bio               String? // Short introduction / about
+  yearsOfExperience Int?
+  designation       String?
+  specialization    String?
+  qualification     String?
+  joiningDate       DateTime?
+  phone             String?
+  officeRoom        String?
+
+  resume          String?
+  resumePublicId  String?
+  additionalFiles Json? // Array of file URLs or file metadata // Stores: [{ url: "...", publicId: "..." }]
+
+  verificationStatus InstructorVerificationStatus @default(PENDING)
+  rejectionReason    String?
+  reviewedBy         String?
+  reviewedAt         DateTime?
+
   /// Current employment status — drives whether new course assignments
   /// (Unit 4: CourseInstructor) should be allowed.
   employmentStatus EmploymentStatus @default(ACTIVE)
@@ -115,6 +131,7 @@ model StudentProfile {
   studentId         String?               @unique
   name              String?
   email             String?
+  avatar            String?
   programId         String?
   admissionDate     DateTime?
   dateOfBirth       DateTime?
@@ -156,6 +173,7 @@ model AccountantProfile {
   employeeId       String           @unique
   name             String?
   email            String?
+  avatar           String?
   designation      String?
   joiningDate      DateTime?
   phone            String?
