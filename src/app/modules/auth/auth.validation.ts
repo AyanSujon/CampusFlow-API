@@ -34,6 +34,11 @@ const studentEmailVerifyZodSchema = z.object({
 	otp: z.string().length(6),
 });
 
+const resendOTPZodSchema = z.object({
+    email: z.email("Please provide a valid email address."),
+});
+
+
 const LoginZodSchema = z.object({
 	email: z.email(),
 	password: z
@@ -66,7 +71,9 @@ const ResetPasswordZodSchema = z.object({
 export const UserValidation = {
 	StudentRegistrationZodSchema,
 	studentEmailVerifyZodSchema,
+	resendOTPZodSchema,
 	LoginZodSchema,
 	ForgotPasswordZodSchema,
 	ResetPasswordZodSchema,
+	
 };

@@ -347,7 +347,63 @@ const verifyStudentEmail = async (payload: IVerifyEmailPayload) => {
 
 
 
+const resendOTP = async (email: string) => {
+  const normalizedEmail = email.trim().toLowerCase();
 
+  const expirationSeconds = 5 * 60;
+
+  const studentRegistrationKey = `student-registration-data:${normalizedEmail}`;
+  const otpKey = `student-registration-otp:${normalizedEmail}`;
+
+  // Check if registration data still exists
+  const registrationData = await redisClient.get(studentRegistrationKey);
+
+  if (!registrationData) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Registration session has expired. Please register again.",
+    );
+  }
+
+  // Generate a new OTP
+  const otpValue = crypto.randomInt(100000, 1000000).toString();
+
+  if (config.node_env === "development") {
+    console.log(`[dev] Resend OTP ${normalizedEmail} : ${otpValue}`);
+  }
+
+  // Store new OTP and reset expiration to 5 minutes
+  await redisClient.set(otpKey, otpValue, {
+    expiration: {
+      type: "EX",
+      value: expirationSeconds,
+    },
+  });
+
+  // Get user data for email template
+  const userData = JSON.parse(registrationData);
+
+  const templatePath = path.join(
+    process.cwd(),
+    "src/app/templates/registration-user-otp.ejs",
+  );
+
+  const templateData = {
+    name: userData.name,
+    email: normalizedEmail,
+    otp: otpValue,
+    expirationMinutes: expirationSeconds / 60,
+  };
+
+  const html = await ejs.renderFile(templatePath, templateData);
+
+  await transporter.sendMail({
+    from: config.email_sender,
+    to: normalizedEmail,
+    subject: "Email Verification - New OTP",
+    html,
+  });
+};
 
 
 
@@ -751,6 +807,7 @@ const resetPassword = async (payload : IResetPasswordPayload) => {
 export const AuthService = {
 	registerStudent,
 	verifyStudentEmail,
+	resendOTP,
 	loginUser,
 	getMe,
 	refreshToken,

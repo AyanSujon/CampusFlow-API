@@ -139,6 +139,24 @@ const verifyStudentEmail = catchAsync(async (req: Request, res: Response) => {
 
 
 
+// import { Request, Response } from "express";
+// import httpStatus from "http-status";
+// import catchAsync from "../../utils/catchAsync";
+// import sendResponse from "../../utils/sendResponse";
+// import { AuthService } from "./auth.service";
+
+const resendOTP = catchAsync(async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  const result = await AuthService.resendOTP(email);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "A new verification code has been sent to your email.",
+    data: result,
+  });
+});
 
 
 
@@ -300,6 +318,7 @@ const logout = catchAsync(async (req: Request, res: Response) => {
 export const AuthController = {
 	registerStudent,
 	verifyStudentEmail,
+	resendOTP,
 	loginUser,
 	getMe,
 	refreshToken,

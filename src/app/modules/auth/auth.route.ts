@@ -18,6 +18,11 @@ router.post(
   validateRequest(UserValidation.studentEmailVerifyZodSchema),
   AuthController.verifyStudentEmail,
 );
+router.post(
+  "/resend-otp",
+  validateRequest(UserValidation.resendOTPZodSchema),
+  AuthController.resendOTP,
+);
 
 router.post("/login",
 	validateRequest(UserValidation.LoginZodSchema),
