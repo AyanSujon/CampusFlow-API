@@ -95,15 +95,17 @@ import HttpStatus from "http-status";
 import { JwtPayload } from "jsonwebtoken";
 import { prisma } from "../lib/prisma";
 
+export interface RequestUser {
+	id: string;
+	email: string;
+	name: string;
+	role: Role;
+}
+
 declare global {
 	namespace Express {
 		interface Request {
-			user?: {
-				id: string;
-				email: string;
-				name: string;
-				role: Role;
-			};
+			user?: RequestUser;
 		}
 	}
 }
