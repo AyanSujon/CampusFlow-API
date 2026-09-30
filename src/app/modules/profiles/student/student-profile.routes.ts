@@ -9,10 +9,11 @@ import { auth } from "../../../middleware/checkAuth";
 const router= Router();
 
 
-router.get("/profile", (req, res) => {
-    res.send("Student Profile Route");
-}
+
+router.get("/all",  auth(Role.STUDENT, Role.SUPER_ADMIN),
+    studentProfileController.getAllStudentProfile
 );
+
 
 
 router.post("/create-profile",

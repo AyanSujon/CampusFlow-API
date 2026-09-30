@@ -6,6 +6,29 @@ import { sendResponse } from "../../../utils/sendResponse";
 import { studentProfileService } from "./student-profile.service";
 import { ICreateStudentProfilePayload } from "./student-profile.interface";
 
+
+
+const getAllStudentProfile = catchAsync(async (req: Request, res: Response) => {
+	if (!req.user) {
+		throw new Error("User is not authenticated");
+	}
+
+
+	const {data, meta} = await studentProfileService.getAllStudentProfileFromBD(req.query);
+
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Users Profile retived Successfully",
+		data: data,
+		meta: meta,
+	});
+});
+
+
+
+
+
 const createStudentProfile = catchAsync(async (req: Request, res: Response) => {
 	if (!req.user) {
 		throw new Error("User is not authenticated");
@@ -29,4 +52,6 @@ const createStudentProfile = catchAsync(async (req: Request, res: Response) => {
 
 export const studentProfileController = {
 	createStudentProfile,
+	getAllStudentProfile,
+
 };
