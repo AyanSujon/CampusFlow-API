@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { studentProfileRoutes } from "./student/student-profile.routes";
+import { instructorProfileRoutes } from "./instructors/instructors.route";
 
 // import studentProfileRoutes from "./student/student-profile.routes";
 // import instructorProfileRoutes from "./instructor/instructor-profile.routes";
@@ -11,8 +12,8 @@ const router = Router();
 // Student Profile
 router.use("/student", studentProfileRoutes);
 
-// // Instructor Profile
-// router.use("/instructors", instructorProfileRoutes);
+// Instructor Profile
+router.use("/instructors", instructorProfileRoutes);
 
 // // Department Head Profile
 // router.use("/department-heads", departmentHeadProfileRoutes);

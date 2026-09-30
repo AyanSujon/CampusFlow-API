@@ -59,11 +59,6 @@ const getAllStudentProfileFromBD = async (query: IQuery) => {
 	}
 
 	//filtering
-	if (query.studentId) {
-		andConditions.push({
-			studentId: { equals: query.studentId, mode: "insensitive" },
-		});
-	}
 
 	if (query.programId) {
 		andConditions.push({
