@@ -7,8 +7,15 @@ import { instructorsProfileController } from "./instructors.controller";
 
 
 
-
 const router= Router();
+
+
+router.post("/create-profile",
+    auth(Role.SUPER_ADMIN, Role.INSTRUCTOR),
+    // validateRequest(studentProfileValidation.createStudentProfileZodSchema),
+    instructorsProfileController.createInstructorProfile
+     );
+
 
 
 
