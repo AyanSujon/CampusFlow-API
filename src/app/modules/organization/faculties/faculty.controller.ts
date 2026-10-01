@@ -23,13 +23,15 @@ const createFaculty = catchAsync(async (req: Request, res: Response) => {
 
 
 const getAllFaculties = catchAsync(async (req: Request, res: Response) => {
-	const result = await facultyService.getAllFaculties();
+
+	const {data, meta} = await facultyService.getAllFaculties(req.query);
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
 		message: "Faculties Retrieved Successfully",
-		data: result,
+		data: data,
+		meta: meta,
 	});
 });
 
