@@ -4,6 +4,7 @@ import { prisma } from "../../../lib/prisma";
 import { AppError } from "../../../utils/AppError";
 import type { ICreateProgramPayload, IUpdateProgram } from "./program.interface";
 import { DegreeType } from "../../../../generated/prisma/enums";
+import { IQuery } from "../../../interface";
 
 const createProgram = async (payload: ICreateProgramPayload) => {
 	const {
@@ -203,41 +204,140 @@ const updateProgram = async (
 
 
 
-const getAllPrograms = async () => {
-	const programs = await prisma.program.findMany({
-		where: {
-			isDeleted: false,
-		},
-		select: {
-			id: true,
-			code: true,
-			name: true,
-			degreeType: true,
-			durationYears: true,
-			totalCredits: true,
-			description: true,
-			isActive: true,
-			createdAt: true,
-			updatedAt: true,
+// const getAllPrograms = async (payload: IQuery) => {
+	
+	
+	
+// 	const programs = await prisma.program.findMany({
+// 		where: {
+// 			isDeleted: false,
+// 		},
+// 		select: {
+// 			id: true,
+// 			code: true,
+// 			name: true,
+// 			degreeType: true,
+// 			durationYears: true,
+// 			totalCredits: true,
+// 			description: true,
+// 			isActive: true,
+// 			createdAt: true,
+// 			updatedAt: true,
 
-			department: {
-				select: {
-					id: true,
-					code: true,
-					name: true,
-				},
-			},
-		},
-		orderBy: {
-			createdAt: "desc",
-		},
-	});
+// 			department: {
+// 				select: {
+// 					id: true,
+// 					code: true,
+// 					name: true,
+// 				},
+// 			},
+// 		},
+// 		orderBy: {
+// 			createdAt: "desc",
+// 		},
+// 	});
 
-	return programs;
+// 	return programs;
+// };
+
+
+
+
+
+
+const getAllPrograms = async (payload: IQuery) => {
+  const limit = payload.limit ? Number(payload.limit) : 10;
+  const page = payload.page ? Number(payload.page) : 1;
+  const skip = (page - 1) * limit;
+
+  const searchTerm = payload.searchTerm?.trim();
+
+  const where = {
+    isDeleted: false,
+
+    ...(searchTerm && {
+      OR: [
+        {
+          code: {
+            contains: searchTerm,
+            mode: "insensitive" as const,
+          },
+        },
+        {
+          name: {
+            contains: searchTerm,
+            mode: "insensitive" as const,
+          },
+        },
+        {
+          description: {
+            contains: searchTerm,
+            mode: "insensitive" as const,
+          },
+        },
+      ],
+    }),
+
+    ...(payload.departmentId && {
+      departmentId: payload.departmentId,
+    }),
+
+    ...(payload.degreeType && {
+      degreeType: payload.degreeType,
+    }),
+
+    ...(payload.isActive !== undefined && {
+      isActive: payload.isActive === "true",
+    }),
+  };
+
+  const [programs, total] = await Promise.all([
+    prisma.program.findMany({
+      where,
+      skip,
+      take: limit,
+
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        degreeType: true,
+        durationYears: true,
+        totalCredits: true,
+        description: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+
+        department: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+          },
+        },
+      },
+
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
+
+    prisma.program.count({
+      where,
+    }),
+  ]);
+
+  return {
+    data: programs,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
-
-
-
 
 
 

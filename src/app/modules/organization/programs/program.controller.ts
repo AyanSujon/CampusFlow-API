@@ -91,7 +91,8 @@ const updateProgram = catchAsync(async (req: Request, res: Response) => {
 
 
 const getAllPrograms = catchAsync(async (req: Request, res: Response) => {
-	const result = await programsService.getAllPrograms();
+		const payload = req.query;
+	const result = await programsService.getAllPrograms(payload);
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
