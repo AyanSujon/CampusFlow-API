@@ -65,6 +65,114 @@
           "response": []
         },
         {
+          "name": "Verify Student Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "",
+                  "pm.test(\"registers with 201\", () => pm.response.to.have.status(201));",
+                  "",
+                  "if (res && res.data && res.data.accessToken) {",
+                  "    pm.collectionVariables.set(\"accessToken\", res.data.accessToken);",
+                  "    pm.collectionVariables.set(\"refreshToken\", res.data.refreshToken || \"\");",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"forejey893@dreameg.com\",\n    \"otp\": \"518286\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/v1/auth/verify-email",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "verify-email"
+              ]
+            },
+            "description": "Expected: **201**. In one Prisma transaction this creates a `User` (`role: PATIENT`, `status: ACTIVE`, `emailVerified: false`, `authProvider: CREDENTIALS`, bcrypt-hashed password) and its matching `Patient` row.\n\nReturns `data: { accessToken, refreshToken, user, patient }`, and also sets both tokens as cookies. The test script stores the tokens in collection variables for the protected requests below.\n\nThere is no email verification step — the OTP/verify-email/forget-password/reset-password flows went away with better-auth."
+          },
+          "response": []
+        },
+        {
+          "name": "resend-otp",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "",
+                  "pm.test(\"registers with 201\", () => pm.response.to.have.status(201));",
+                  "",
+                  "if (res && res.data && res.data.accessToken) {",
+                  "    pm.collectionVariables.set(\"accessToken\", res.data.accessToken);",
+                  "    pm.collectionVariables.set(\"refreshToken\", res.data.refreshToken || \"\");",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"fevaxo3186@duidir.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/v1/auth/resend-otp",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "resend-otp"
+              ]
+            },
+            "description": "Expected: **201**. In one Prisma transaction this creates a `User` (`role: PATIENT`, `status: ACTIVE`, `emailVerified: false`, `authProvider: CREDENTIALS`, bcrypt-hashed password) and its matching `Patient` row.\n\nReturns `data: { accessToken, refreshToken, user, patient }`, and also sets both tokens as cookies. The test script stores the tokens in collection variables for the protected requests below.\n\nThere is no email verification step — the OTP/verify-email/forget-password/reset-password flows went away with better-auth."
+          },
+          "response": []
+        },
+        {
           "name": "Credential Login",
           "event": [
             {
@@ -187,6 +295,40 @@
           "response": []
         },
         {
+          "name": "User Logout",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/v1/auth/logout",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Google Login",
           "event": [
             {
@@ -203,8 +345,7 @@
                   "}"
                 ],
                 "type": "text/javascript",
-                "packages": {},
-                "requests": {}
+                "packages": {}
               }
             }
           ],
@@ -298,6 +439,89 @@
                     "v1",
                     "profiles",
                     "student",
+                    "create-profile"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Student by Super Admin",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:5000/api/v1/profiles/student/all",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "5000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "profiles",
+                    "student",
+                    "all"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Instructor profile",
+          "item": [
+            {
+              "name": "Get All Instrutor by Super Admin",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:5000/api/v1/profiles/instructors/all",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "5000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "profiles",
+                    "instructors",
+                    "all"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Instrutor  profile by Super Admin and Instructor",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"userId\": \"96b4b543-5595-4d89-ab88-96e23d2f0142\",\r\n    \"employeeId\": \"EMP-2026-002\",\r\n    \"name\": \"Dr. Mohammad Rahman\",\r\n    \"email\": \"rahman@university.edu\",\r\n    \"avatar\": \"https://example.com/avatars/rahman.jpg\",\r\n    \"bio\": \"Experienced computer science instructor specializing in software engineering and web development.\",\r\n    \"yearsOfExperience\": 8,\r\n    \"designation\": \"Assistant Professor\",\r\n    \"specialization\": \"Software Engineering\",\r\n    \"qualification\": \"MSc in Computer Science\",\r\n    \"joiningDate\": \"2026-01-15T00:00:00.000Z\",\r\n    \"phone\": \"+8801712345678\",\r\n    \"officeRoom\": \"CS-205\",\r\n    \"resume\": \"https://example.com/resumes/rahman.pdf\",\r\n    \"resumePublicId\": \"resumes/rahman\",\r\n    \"additionalFiles\": [\r\n      {\r\n        \"url\": \"https://example.com/files/rahman-certificate.pdf\",\r\n        \"publicId\": \"files/rahman-certificate\"\r\n      }\r\n    ],\r\n    \"verificationStatus\": \"PENDING\",\r\n    \"employmentStatus\": \"ACTIVE\"\r\n  }",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:5000/api/v1/profiles/instructors/create-profile",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "5000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "profiles",
+                    "instructors",
                     "create-profile"
                   ]
                 }
@@ -671,7 +895,7 @@
             {
               "name": "get programs (public)",
               "request": {
-                "method": "POST",
+                "method": "GET",
                 "header": [],
                 "url": {
                   "raw": "http://localhost:5000/api/v1/organization/programs/all",
@@ -808,6 +1032,204 @@
               "response": []
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Super Admin Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/api/v1/analytics/super-admin-analytics",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "v1",
+                "analytics",
+                "super-admin-analytics"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Super Admin Analytics",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:5000/api/v1/analytics/super-admin-analytics",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "5000",
+                  "path": [
+                    "api",
+                    "v1",
+                    "analytics",
+                    "super-admin-analytics"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "JSON",
+              "header": [
+                {
+                  "key": "Content-Security-Policy",
+                  "value": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+                  "type": "text"
+                },
+                {
+                  "key": "Cross-Origin-Opener-Policy",
+                  "value": "same-origin",
+                  "type": "text"
+                },
+                {
+                  "key": "Cross-Origin-Resource-Policy",
+                  "value": "same-origin",
+                  "type": "text"
+                },
+                {
+                  "key": "Origin-Agent-Cluster",
+                  "value": "?1",
+                  "type": "text"
+                },
+                {
+                  "key": "Referrer-Policy",
+                  "value": "no-referrer",
+                  "type": "text"
+                },
+                {
+                  "key": "Strict-Transport-Security",
+                  "value": "max-age=31536000; includeSubDomains",
+                  "type": "text"
+                },
+                {
+                  "key": "X-Content-Type-Options",
+                  "value": "nosniff",
+                  "type": "text"
+                },
+                {
+                  "key": "X-DNS-Prefetch-Control",
+                  "value": "off",
+                  "type": "text"
+                },
+                {
+                  "key": "X-Download-Options",
+                  "value": "noopen",
+                  "type": "text"
+                },
+                {
+                  "key": "X-Frame-Options",
+                  "value": "SAMEORIGIN",
+                  "type": "text"
+                },
+                {
+                  "key": "X-Permitted-Cross-Domain-Policies",
+                  "value": "none",
+                  "type": "text"
+                },
+                {
+                  "key": "X-XSS-Protection",
+                  "value": "0",
+                  "type": "text"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "http://localhost:3000",
+                  "type": "text"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin",
+                  "type": "text"
+                },
+                {
+                  "key": "Access-Control-Allow-Credentials",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "RateLimit",
+                  "value": "\"100-in-15min\"; r=98; t=869",
+                  "type": "text"
+                },
+                {
+                  "key": "RateLimit-Policy",
+                  "value": "\"100-in-15min\"; q=100; w=900; pk=:YmIwY2Q1MTM2YWU1:",
+                  "type": "text"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8",
+                  "type": "text"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "458",
+                  "type": "text"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"1ca-bLvG+3G7FftjpxAF5FoF3ZUYang\"",
+                  "type": "text"
+                },
+                {
+                  "key": "Date",
+                  "value": "Mon, 28 Sep 2026 15:18:03 GMT",
+                  "type": "text"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive",
+                  "type": "text"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5",
+                  "type": "text"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"statusCode\": 200,\n    \"message\": \"Super Admin Analytics Retrieved Successfully\",\n    \"data\": {\n        \"totalStudents\": 1,\n        \"totalInstructors\": 1,\n        \"totalPendingInstructorApplications\": 0,\n        \"totalApprovedInstructor\": 0,\n        \"totalRejectedInstructor\": 0,\n        \"totalFaculties\": 8,\n        \"totalDepartments\": 10,\n        \"totalPrograms\": 10,\n        \"totalActiveCourses\": 5,\n        \"totalApprovedEnrollments\": 0,\n        \"totalPendingEnrollments\": 0,\n        \"totalRejectedEnrollments\": 0,\n        \"revenueThisMonth\": 0,\n        \"totalRevenue\": 0,\n        \"totalRefunded\": 0\n    }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get All User By Admin",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/api/v1/users/all",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5000",
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "all"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
